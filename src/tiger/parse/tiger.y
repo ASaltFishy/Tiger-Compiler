@@ -6,6 +6,7 @@
   * Please don't modify the lines above.
   */
 
+//associate field name(used in %token and %type) with C type 
 %union {
   int ival;
   std::string* sval;
@@ -26,6 +27,7 @@
   absyn::Ty *ty;
   }
 
+//specify the token
 %token <sym> ID
 %token <sval> STRING
 %token <ival> INT
@@ -42,6 +44,7 @@
  /* token priority */
  /* TODO: Put your lab3 code here */
 
+//define semantic value of nonterminal(symbol list)
 %type <exp> exp expseq
 %type <explist> actuals nonemptyactuals sequencing sequencing_exps
 %type <var> lvalue one oneormore
