@@ -1,11 +1,11 @@
 %filenames = "scanner"
 
- /*
+/*
   * Please don't modify the lines above.
   */
 
- /* You can add lex definitions here. */
- /* TODO: Put your lab2 code here */
+/* You can add lex definitions here. */
+/* TODO: Put your lab2 code here */
 
 %x COMMENT STR
 
@@ -168,5 +168,3 @@ id [a-zA-Z][a-zA-Z_0-9]*
   .|\n adjustStr();
 }
 
-/* end of file */
-<<EOF>> return 0;
