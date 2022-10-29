@@ -17,7 +17,8 @@ class VarEntry : public EnvEntry {
 public:
   type::Ty *ty_;
 
-  // For lab4(semantic analysis) only
+  // For lab4(semantic analysis) only, for translation there will add Access, Level and Label for translation!!!
+  // maybe in diffrent doc and some codes are the same
   explicit VarEntry(type::Ty *ty, bool readonly = false)
       : EnvEntry(readonly), ty_(ty){};
 };
