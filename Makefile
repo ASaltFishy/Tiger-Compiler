@@ -20,7 +20,7 @@ transform:
 build:
 	mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && make
 
-build-debug:transform
+build-debug:
 	mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug .. && make
 
 gradelab1:transform
