@@ -380,6 +380,7 @@ void FunctionDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
     venv->Enter(function->name_, new env::FunEntry(formalTy, result));
   }
   // second pass
+  // every function parameter consist of a scope
   for (FunDec *function : function_list) {
     venv->BeginScope();
     FieldList *para = function->params_;
@@ -448,16 +449,13 @@ void TypeDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
   bool isCycle = false;
   for (NameAndTy *tyDec : list) {
     type::Ty *entry = tenv->Look(tyDec->name_);
-    if (typeid(*entry) == typeid(type::NameTy)) {
-      type::Ty *temp = ((type::NameTy *)entry)->ty_;
-      while (typeid(*temp) == typeid(type::NameTy)) {
-        if (((type::NameTy *)temp)->sym_ == tyDec->name_) {
+    while(typeid(*entry) == typeid(type::NameTy)) {
+        if (((type::NameTy *)entry)->sym_ == tyDec->name_) {
           errormsg->Error(pos_, "illegal type cycle");
           isCycle = true;
           break;
-        }
-        temp = ((type::NameTy *)temp)->ty_;
-      }
+          }
+        entry = ((type::NameTy *)entry)->ty_;
     }
     if (isCycle)
       break;
