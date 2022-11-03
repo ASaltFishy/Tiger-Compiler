@@ -676,6 +676,7 @@ private:
   std::list<Dec *> dec_list_;
 };
 
+// in type declaration lick "a=Int", a is the aka of Int
 class NameAndTy {
 public:
   sym::Symbol *name_;
@@ -704,6 +705,7 @@ private:
   std::list<NameAndTy *> name_and_ty_list_;
 };
 
+//for record (it's lick C's class in Tiger)
 class EField {
 public:
   sym::Symbol *name_;
