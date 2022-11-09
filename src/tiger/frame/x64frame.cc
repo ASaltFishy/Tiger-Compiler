@@ -12,7 +12,6 @@ public:
   /* TODO: Put your lab5 code here */
 };
 
-
 class InRegAccess : public Access {
 public:
   temp::Temp *reg;
@@ -23,6 +22,15 @@ public:
 
 class X64Frame : public Frame {
   /* TODO: Put your lab5 code here */
+private:
+  std::list<Access *> *formals_;
+
+public:
+  X64Frame NewFrame(temp::Label *name, std::list<bool> formals) {
+    for (auto item : formals) {
+      // TODO
+    }
+  }
 };
 /* TODO: Put your lab5 code here */
 
