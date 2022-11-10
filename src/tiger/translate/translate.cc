@@ -4,9 +4,9 @@
 
 #include "tiger/env/env.h"
 #include "tiger/errormsg/errormsg.h"
-#include "tiger/frame/x64frame.h"
-#include "tiger/frame/temp.h"
 #include "tiger/frame/frame.h"
+#include "tiger/frame/temp.h"
+#include "tiger/frame/x64frame.h"
 
 extern frame::Frags *frags;
 extern frame::RegManager *reg_manager;
@@ -15,6 +15,23 @@ namespace tr {
 
 Access *Access::AllocLocal(Level *level, bool escape) {
   /* TODO: Put your lab5 code here */
+  return new Access(level, (level->frame_)->AllocLocal(escape));
+}
+
+Level *Level::NewLevel(temp::Label *name, std::list<bool> escape,
+                       Level *parent) {
+  // push static link into formal parameter
+  escape.push_front(true);
+  return new Level(frame::Frame::newFrame(name, escape), parent);
+}
+
+tree::Exp *Level::getFramePointer() {
+  temp::Temp *rsp = reg_manager->StackPointer();
+  int frameSize = frame_->getFrameSize();
+  tree::BinopExp *address =
+      new tree::BinopExp(tree::BinOp::PLUS_OP, new tree::TempExp(rsp),
+                         new tree::ConstExp(frameSize));
+  return new tree::MemExp(address);
 }
 
 class Cx {
@@ -48,7 +65,7 @@ public:
 
   explicit ExExp(tree::Exp *exp) : exp_(exp) {}
 
-  [[nodiscard]] tree::Exp *UnEx() override { 
+  [[nodiscard]] tree::Exp *UnEx() override {
     /* TODO: Put your lab5 code here */
   }
   [[nodiscard]] tree::Stm *UnNx() override {
@@ -68,7 +85,7 @@ public:
   [[nodiscard]] tree::Exp *UnEx() override {
     /* TODO: Put your lab5 code here */
   }
-  [[nodiscard]] tree::Stm *UnNx() override { 
+  [[nodiscard]] tree::Stm *UnNx() override {
     /* TODO: Put your lab5 code here */
   }
   [[nodiscard]] Cx UnCx(err::ErrorMsg *errormsg) override {
@@ -82,20 +99,22 @@ public:
 
   CxExp(PatchList trues, PatchList falses, tree::Stm *stm)
       : cx_(trues, falses, stm) {}
-  
+
   [[nodiscard]] tree::Exp *UnEx() override {
     /* TODO: Put your lab5 code here */
   }
   [[nodiscard]] tree::Stm *UnNx() override {
     /* TODO: Put your lab5 code here */
   }
-  [[nodiscard]] Cx UnCx(err::ErrorMsg *errormsg) override { 
+  [[nodiscard]] Cx UnCx(err::ErrorMsg *errormsg) override {
     /* TODO: Put your lab5 code here */
   }
 };
 
 void ProgTr::Translate() {
   /* TODO: Put your lab5 code here */
+  absyn_tree_->Translate(venv_.get(), tenv_.get(), main_level_.get(), NULL,
+                         errormsg_.get());
 }
 
 } // namespace tr
@@ -106,12 +125,25 @@ tr::ExpAndTy *AbsynTree::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
                                    err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
+  root_->Translate(venv, tenv, level, label, errormsg);
 }
 
 tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
                                    err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
+  env::EnvEntry *entry = venv->Look(sym_);
+  tr::Access *targetAccess = ((env::VarEntry *)entry)->access_;
+  tr::Level *targetLevel = targetAccess->level_, *tempLevel = level;
+  tr::Exp *retExp;
+  tree::Exp *static_link = level->getFramePointer();
+  while (tempLevel != targetLevel) {
+    frame::Access *sl = tempLevel->frame_->getSLAccess();
+    static_link = sl->ToExp(static_link);
+    tempLevel = tempLevel->parent_;
+  }
+  retExp = new tr::ExExp(targetAccess->access_->ToExp(static_link));
+  return NULL;
 }
 
 tr::ExpAndTy *FieldVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
@@ -163,7 +195,7 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 }
 
 tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
-                                   tr::Level *level, temp::Label *label,      
+                                   tr::Level *level, temp::Label *label,
                                    err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
 }
@@ -175,7 +207,7 @@ tr::ExpAndTy *SeqExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 }
 
 tr::ExpAndTy *AssignExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
-                                   tr::Level *level, temp::Label *label,                       
+                                   tr::Level *level, temp::Label *label,
                                    err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
 }
@@ -187,7 +219,7 @@ tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 }
 
 tr::ExpAndTy *WhileExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
-                                  tr::Level *level, temp::Label *label,            
+                                  tr::Level *level, temp::Label *label,
                                   err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
 }
@@ -211,7 +243,7 @@ tr::ExpAndTy *LetExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 }
 
 tr::ExpAndTy *ArrayExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
-                                  tr::Level *level, temp::Label *label,                    
+                                  tr::Level *level, temp::Label *label,
                                   err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
 }
