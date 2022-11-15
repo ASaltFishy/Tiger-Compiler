@@ -17,10 +17,10 @@ docker-run-backend:
 transform:
 	find . \( -name "*.y" -o -name "*.lex" -o -name "*.cc" -o -name "*.tig" -o -name "*.h" -o -name "*.sh" -o -name "ref-0.txt" -o -name "ref-1.txt" -o -name "CMakeLists.txt" \) | xargs -I % sh -c 'dos2unix -n % /tmp/tmp; mv -f /tmp/tmp %;' && find . \( -name "*.out" -o -name "*.lex" -o -name "*.cc" -o -name "*.tig" -o -name "*.h" -o -name "*.sh" -o -name "ref-0.txt" -o -name "ref-1.txt" -o -name "CMakeLists.txt" \) | xargs -I % sh -c 'dos2unix  %;'
 
-build:transform
+build:
 	mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && make
 
-build-debug:transform
+build-debug:
 	mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug .. && make
 
 gradelab1:transform
@@ -29,13 +29,13 @@ gradelab1:transform
 gradelab2:transform
 	bash scripts/grade.sh lab2
 
-gradelab3:transform
+gradelab3:
 	bash scripts/grade.sh lab3
 
-gradelab4:transform
+gradelab4:
 	bash scripts/grade.sh lab4
 
-gradelab5-1:transform
+gradelab5-1:
 	bash scripts/grade.sh lab5-part1
 
 gradelab5:transform
