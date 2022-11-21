@@ -46,6 +46,7 @@ public:
 };
 
 /* TODO: Put your lab5 code here */
+
 X64Frame::X64Frame(temp::Label *name, std::list<bool> formals) : Frame(name) {
     for (bool escape_ : formals) {
       AllocLocal(escape_);
@@ -76,5 +77,6 @@ Access *X64Frame::getSLAccess(){
 Frame *Frame::newFrame(temp::Label *name, std::list<bool> formals) {
   return new X64Frame(name, formals);
 }
+
 
 } // namespace frame

@@ -5,10 +5,9 @@
 #include <memory>
 #include <string>
 
+#include "tiger/codegen/assem.h"
 #include "tiger/frame/temp.h"
 #include "tiger/translate/tree.h"
-#include "tiger/codegen/assem.h"
-
 
 namespace frame {
 
@@ -82,11 +81,13 @@ private:
   temp::Label *name_;
 
 public:
-  Frame(temp::Label *name):name_(name){}
+  Frame(temp::Label *name) : name_(name) {}
+  std::string GetLabel() { return name_->Name(); }
   virtual int getFrameSize() = 0;
   virtual Access *getSLAccess() = 0;
   virtual Access *AllocLocal(bool escape) = 0;
-  [[nodiscard]] static Frame *newFrame(temp::Label *name, std::list<bool> formals);
+  [[nodiscard]] static Frame *newFrame(temp::Label *name,
+                                       std::list<bool> formals);
 };
 
 /**
@@ -106,7 +107,8 @@ public:
    *Generate assembly for main program
    * @param out FILE object for output assembly file
    */
-  virtual void OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const = 0;
+  virtual void OutputAssem(FILE *out, OutputPhase phase,
+                           bool need_ra) const = 0;
 };
 
 class StringFrag : public Frag {
@@ -134,14 +136,19 @@ class Frags {
 public:
   Frags() = default;
   void PushBack(Frag *frag) { frags_.emplace_back(frag); }
-  const std::list<Frag*> &GetList() { return frags_; }
+  const std::list<Frag *> &GetList() { return frags_; }
 
 private:
   std::list<Frag *> frags_;
 };
 
 /* TODO: Put your lab5 code here */
+  static assem::InstrList *ProcEntryExit2(assem::InstrList *body);
+  static assem::Proc *ProcEntryExit3(frame::Frame *frame, assem::InstrList *body);
 
 } // namespace frame
+
+assem::InstrList *frame::ProcEntryExit2(assem::InstrList *body) {}
+assem::Proc *frame::ProcEntryExit3(frame::Frame *frame, assem::InstrList *body) {}
 
 #endif
