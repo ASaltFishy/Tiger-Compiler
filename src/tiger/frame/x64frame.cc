@@ -12,8 +12,7 @@ public:
   tree::Exp *ToExp(tree::Exp *framePtr) override;
 };
 tree::Exp *InFrameAccess::ToExp(tree::Exp *framePtr){
-    tree::BinopExp *address = new tree::BinopExp(tree::BinOp::PLUS_OP,framePtr,new tree::ConstExp(offset));
-    return new tree::MemExp(address);
+    return new tree::MemExp(new tree::BinopExp(tree::MINUS_OP,framePtr,new tree::ConstExp(offset)));
   }
 
 
@@ -56,9 +55,9 @@ X64Frame::X64Frame(temp::Label *name, std::list<bool> formals) : Frame(name) {
 Access *X64Frame::AllocLocal(bool escape) {
   Access *ret = NULL;
   if (escape) {
-    //offset of static link equals to 8
-    count_++;
+    //offset of static link equals to 0 (relative to frame pointer)
     ret = new InFrameAccess(count_ * reg_manager->WordSize());
+    count_++;
   } else {
     ret = new InRegAccess(temp::TempFactory::NewTemp());
   }

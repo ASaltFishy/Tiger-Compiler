@@ -64,7 +64,7 @@ public:
     return 8;
   }
 
-  // forbidden to use %RBP as frame pointer
+  // forbidden to use %RBP as frame pointer, but in translation it will be used.
   temp::Temp *FramePointer()override{
     return rbp;
   }
