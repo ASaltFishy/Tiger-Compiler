@@ -143,16 +143,18 @@ private:
 };
 
 /* TODO: Put your lab5 code here */
-  static assem::InstrList *ProcEntryExit2(assem::InstrList *body);
-  static assem::Proc *ProcEntryExit3(frame::Frame *frame, assem::InstrList *body);
-  
-  tree::Exp *frame::ExternalCall(std::string s,tree::ExpList *args){
-    return new tree::CallExp(new tree::NameExp(temp::LabelFactory::NamedLabel(s)),args);
-  }
+static assem::InstrList *ProcEntryExit2(assem::InstrList *body);
+static assem::Proc *ProcEntryExit3(frame::Frame *frame, assem::InstrList *body);
+static tree::Exp *ExternalCall(std::string s, tree::ExpList *args);
 
 } // namespace frame
 
 assem::InstrList *frame::ProcEntryExit2(assem::InstrList *body) {}
-assem::Proc *frame::ProcEntryExit3(frame::Frame *frame, assem::InstrList *body) {}
+assem::Proc *frame::ProcEntryExit3(frame::Frame *frame,
+                                   assem::InstrList *body) {}
+tree::Exp *frame::ExternalCall(std::string s, tree::ExpList *args) {
+  return new tree::CallExp(new tree::NameExp(temp::LabelFactory::NamedLabel(s)),
+                           args);
+}
 
 #endif

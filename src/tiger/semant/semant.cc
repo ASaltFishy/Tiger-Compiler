@@ -2,51 +2,51 @@
 #include "tiger/absyn/absyn.h"
 
 namespace absyn {
-type::FieldList *makeFiledTyList(env::TEnvPtr tenv, err::ErrorMsg *errormsg,
-                                 FieldList *field) {
-  if (!field)
-    return NULL;
-  type::FieldList *temp;
-  bool first = true;
-  for (Field *item : field->GetList()) {
-    type::Ty *item_ty = tenv->Look(item->typ_);
-    if (!item_ty) {
-      errormsg->Error(item->pos_, "undefined type %s",
-                      item->typ_->Name().data());
-    }
-    if (first) {
-      temp = new type::FieldList(new type::Field(item->name_, item_ty));
-      first = false;
-    } else {
-      temp->Append(new type::Field(item->name_, item_ty));
-    }
-  }
-  return temp;
-}
+// type::FieldList *makeFiledTyList(env::TEnvPtr tenv, err::ErrorMsg *errormsg,
+//                                  FieldList *field) {
+//   if (!field)
+//     return NULL;
+//   type::FieldList *temp;
+//   bool first = true;
+//   for (Field *item : field->GetList()) {
+//     type::Ty *item_ty = tenv->Look(item->typ_);
+//     if (!item_ty) {
+//       errormsg->Error(item->pos_, "undefined type %s",
+//                       item->typ_->Name().data());
+//     }
+//     if (first) {
+//       temp = new type::FieldList(new type::Field(item->name_, item_ty));
+//       first = false;
+//     } else {
+//       temp->Append(new type::Field(item->name_, item_ty));
+//     }
+//   }
+//   return temp;
+// }
 
-type::TyList *makeFormalTyList(env::TEnvPtr tenv, err::ErrorMsg *errormsg,
-                               FieldList *formal) {
-  if (!formal)
-    return NULL;
-  type::TyList *temp = NULL;
-  bool first = true;
-  for (Field *item : formal->GetList()) {
-    if (item) {
-      type::Ty *item_ty = tenv->Look(item->typ_);
-      if (!item_ty) {
-        errormsg->Error(item->pos_, "undefined type %s",
-                        item->typ_->Name().data());
-      }
-      if (first) {
-        temp = new type::TyList(item_ty);
-        first = false;
-      } else {
-        temp->Append(item_ty);
-      }
-    }
-  }
-  return temp;
-}
+// type::TyList *makeFormalTyList(env::TEnvPtr tenv, err::ErrorMsg *errormsg,
+//                                FieldList *formal) {
+//   if (!formal)
+//     return NULL;
+//   type::TyList *temp = NULL;
+//   bool first = true;
+//   for (Field *item : formal->GetList()) {
+//     if (item) {
+//       type::Ty *item_ty = tenv->Look(item->typ_);
+//       if (!item_ty) {
+//         errormsg->Error(item->pos_, "undefined type %s",
+//                         item->typ_->Name().data());
+//       }
+//       if (first) {
+//         temp = new type::TyList(item_ty);
+//         first = false;
+//       } else {
+//         temp->Append(item_ty);
+//       }
+//     }
+//   }
+//   return temp;
+// }
 
 void AbsynTree::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                            err::ErrorMsg *errormsg) const {
@@ -376,7 +376,7 @@ void FunctionDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
     if (function->result_)
       result = tenv->Look(function->result_);
     type::TyList *formalTy =
-        makeFormalTyList(tenv, errormsg, function->params_);
+        function->params_->MakeFormalTyList(tenv, errormsg);
     venv->Enter(function->name_, new env::FunEntry(formalTy, result));
   }
   // second pass
@@ -474,7 +474,7 @@ type::Ty *NameTy::SemAnalyze(env::TEnvPtr tenv, err::ErrorMsg *errormsg) const {
 type::Ty *RecordTy::SemAnalyze(env::TEnvPtr tenv,
                                err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab4 code here */
-  type::FieldList *field = makeFiledTyList(tenv, errormsg, record_);
+  type::FieldList *field = record_->MakeFieldList(tenv, errormsg);
   return new type::RecordTy(field);
 }
 

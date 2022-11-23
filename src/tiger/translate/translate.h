@@ -58,6 +58,7 @@ public:
 
   /* TODO: Put your lab5 code here */
   Level(frame::Frame *frame,Level *parent):frame_(frame),parent_(parent){}
+  Level(){}
   static Level *NewLevel(temp::Label *name,std::list<bool> escape,Level *parent);
   temp::Temp *getFramePointer();
 };
