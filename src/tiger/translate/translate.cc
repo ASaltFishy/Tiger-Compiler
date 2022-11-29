@@ -536,15 +536,39 @@ tr::ExpAndTy *ForExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   temp::Label *loop_label = temp::LabelFactory::NewLabel();
   temp::Label *done_label = temp::LabelFactory::NewLabel();
   temp::Label *body_label = temp::LabelFactory::NewLabel();
+  auto labelList = new std::vector<temp::Label *>();
+  labelList->push_back(body_label);
+
   tree::CjumpStm *largerThan = new tree::CjumpStm(
       tree::LT_OP, loopVar, limitVar, done_label, body_label);
   tree::CjumpStm *equalTo = new tree::CjumpStm(tree::EQ_OP, loopVar, limitVar,
                                                done_label, loop_label);
   tree::CjumpStm *lessThan = new tree::CjumpStm(tree::LE_OP, loopVar, limitVar,
                                                 loop_label, done_label);
+  tree::Stm *increase_loop_var =
+      new tree::MoveStm(loopVar, new tree::BinopExp(tree::PLUS_OP, loopVar,
+                                                    new tree::ConstExp(1)));
+  tree::Stm *loop_stm = new tree::SeqStm(
+      new tree::LabelStm(loop_label),
+      new tree::SeqStm(
+          increase_loop_var,
+          new tree::JumpStm(new tree::NameExp(body_label), labelList)));
 
-  // tree::Stm *totalStm = new tree::SeqStm(init_loopVar_stm, new
-  // tree::SeqStm(largerThan,new tree::SeqStm()))
+  tree::Stm *totalStm = new tree::SeqStm(
+      init_loopVar_stm,
+      new tree::SeqStm(
+          largerThan,
+          new tree::SeqStm(
+              new tree::LabelStm(body_label),
+              new tree::SeqStm(
+                  check_body->exp_->UnNx(),
+                  new tree::SeqStm(
+                      equalTo,
+                      new tree::SeqStm(
+                          loop_stm,
+                          new tree::SeqStm(
+                              lessThan, new tree::LabelStm(done_label))))))));
+  return new tr::ExpAndTy(new tr::NxExp(totalStm), type::VoidTy::Instance());
 }
 
 tr::ExpAndTy *BreakExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
@@ -566,30 +590,32 @@ tr::ExpAndTy *LetExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   tenv->BeginScope();
   tree::Stm *decStm;
   int firstStm = true;
-  for(Dec* dec : decs_->GetList()){
-    if(firstStm){
+  for (Dec *dec : decs_->GetList()) {
+    if (firstStm) {
       decStm = dec->Translate(venv, tenv, level, label, errormsg)->UnNx();
       firstStm = false;
-    }else{
-      decStm = new tree::SeqStm(decStm,dec->Translate(venv, tenv, level, label, errormsg)->UnNx());
+    } else {
+      decStm = new tree::SeqStm(
+          decStm, dec->Translate(venv, tenv, level, label, errormsg)->UnNx());
     }
   }
-  tr::ExpAndTy *check_body = body_->Translate(venv, tenv, level, label, errormsg);
+  tr::ExpAndTy *check_body =
+      body_->Translate(venv, tenv, level, label, errormsg);
   venv->EndScope();
   tenv->EndScope();
 
   tree::Exp *tempExp;
-  if(decStm){
-    tempExp = new tree::EseqExp(decStm,check_body->exp_->UnEx());
-  }else{
+  if (decStm) {
+    tempExp = new tree::EseqExp(decStm, check_body->exp_->UnEx());
+  } else {
     tempExp = check_body->exp_->UnEx();
   }
   decStm = new tree::ExpStm(tempExp);
-  if(first){
+  if (first) {
     first = false;
-     frags->PushBack(new frame::ProcFrag(decStm, level->frame_));
+    frags->PushBack(new frame::ProcFrag(decStm, level->frame_));
   }
-  return new tr::ExpAndTy(new tr::ExExp(tempExp),check_body->ty_);
+  return new tr::ExpAndTy(new tr::ExExp(tempExp), check_body->ty_);
 }
 
 tr::ExpAndTy *ArrayExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
