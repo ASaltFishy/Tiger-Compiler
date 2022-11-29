@@ -469,7 +469,7 @@ public:
   void SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
                   err::ErrorMsg *errormsg) const override;
   tr::Exp *Translate(env::VEnvPtr venv, env::TEnvPtr tenv, tr::Level *level,
-                     temp::Label *label, 
+                     temp::Label *label,
                      err::ErrorMsg *errormsg) const override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
@@ -489,7 +489,7 @@ public:
   void SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
                   err::ErrorMsg *errormsg) const override;
   tr::Exp *Translate(env::VEnvPtr venv, env::TEnvPtr tenv, tr::Level *level,
-                     temp::Label *label, 
+                     temp::Label *label,
                      err::ErrorMsg *errormsg) const override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
@@ -505,7 +505,7 @@ public:
   void SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
                   err::ErrorMsg *errormsg) const override;
   tr::Exp *Translate(env::VEnvPtr venv, env::TEnvPtr tenv, tr::Level *level,
-                     temp::Label *label, 
+                     temp::Label *label,
                      err::ErrorMsg *errormsg) const override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
@@ -603,6 +603,7 @@ public:
                                  err::ErrorMsg *errormsg) const;
   type::FieldList *MakeFieldList(env::TEnvPtr tenv,
                                  err::ErrorMsg *errormsg) const;
+  std::list<bool> MakeEscapeList() const;
 
 private:
   std::list<Field *> field_list_;
@@ -705,7 +706,7 @@ private:
   std::list<NameAndTy *> name_and_ty_list_;
 };
 
-//for record (it's lick C's class in Tiger)
+// for record (it's lick C's class in Tiger)
 class EField {
 public:
   sym::Symbol *name_;

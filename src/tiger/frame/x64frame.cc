@@ -35,7 +35,6 @@ class X64Frame : public Frame {
   /* TODO: Put your lab5 code here */
 private:
   int count_ = 0;
-  std::list<Access *> *formals_;
 
 public:
   X64Frame(temp::Label *name, std::list<bool> formals);
@@ -75,6 +74,41 @@ Access *X64Frame::getSLAccess(){
 
 Frame *Frame::newFrame(temp::Label *name, std::list<bool> formals) {
   return new X64Frame(name, formals);
+}
+
+// add section 4, 5 <body> 8
+tree::Stm *ProcEntryExit1(frame::Frame *frame, tree::Stm *body) {
+  int argNum = frame->formals_->size();
+  std::list<temp::Temp *> regList = reg_manager->ArgRegs()->GetList();
+  auto reg = regList.end();
+  for (auto it = frame->formals_->begin(); it != frame->formals_->end(); it++) {
+    if (argNum <= 6) {
+      reg--;
+      body = new tree::SeqStm(
+          new tree::MoveStm(
+              new tree::TempExp(*reg),
+              (*it)->ToExp(new tree::TempExp(reg_manager->FramePointer()))),
+          body);
+    } else {
+      tree::Exp *dst = new tree::MemExp(new tree::BinopExp(
+          tree::BinOp::MINUS_OP, new tree::TempExp(reg_manager->FramePointer()),
+                                                  new tree::ConstExp(reg_manager->WordSize()*(argNum-6))));
+      body = new tree::SeqStm(
+          new tree::MoveStm(dst, (*it)->ToExp(new tree::TempExp(
+                                     reg_manager->FramePointer()))),
+          body);
+    }
+    argNum--;
+  }
+}
+assem::InstrList *ProcEntryExit2(assem::InstrList *body) {}
+
+assem::Proc *ProcEntryExit3(frame::Frame *frame,
+                                   assem::InstrList *body) {}
+
+tree::Exp *ExternalCall(std::string s, tree::ExpList *args) {
+  return new tree::CallExp(new tree::NameExp(temp::LabelFactory::NamedLabel(s)),
+                           args);
 }
 
 
