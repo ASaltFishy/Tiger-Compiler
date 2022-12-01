@@ -144,8 +144,8 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
         "cqto", new temp::TempList({x64RM->rax, x64RM->rdx}),
         new temp::TempList(x64RM->rax)));
     instr_list.Append(
-        new assem::OperInstr("subq `s0, `d0", new temp::TempList(newReg),
-                             new temp::TempList(right_reg), nullptr));
+        new assem::OperInstr("movq `s0, `d0", new temp::TempList(newReg),
+                             new temp::TempList(x64RM->rax), nullptr));
     break;
   case DIV_OP:
     instr_list.Append(new assem::MoveInstr("movq `s0, `d0",
@@ -157,10 +157,10 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     instr_list.Append(new assem::OperInstr(
         "idivq `s0", new temp::TempList({x64RM->rax, x64RM->rdx}),
         new temp::TempList(right_reg), nullptr));
-    break;
     instr_list.Append(
-        new assem::OperInstr("subq `s0, `d0", new temp::TempList(newReg),
-                             new temp::TempList(right_reg), nullptr));
+        new assem::OperInstr("movq `s0, `d0", new temp::TempList(newReg),
+                             new temp::TempList(x64RM->rax), nullptr));
+    break;
   default:
     break;
   }
@@ -184,9 +184,9 @@ temp::Temp *TempExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     reg = temp_;
   } else {
     reg = temp::TempFactory::NewTemp();
-    instr_list.Append(new assem::OperInstr(
-        "leaq " + std::string(fs) + "(%rsp), `d0", new temp::TempList(reg),
-        nullptr, nullptr));
+    instr_list.Append(
+        new assem::OperInstr("leaq " + std::string(fs) + "(%rsp), `d0",
+                             new temp::TempList(reg), nullptr, nullptr));
   }
   return reg;
 }
@@ -244,11 +244,12 @@ temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list,
   int arg_num = exp_list_.size();
   std::list<temp::Temp *> argRegList = reg_manager->ArgRegs()->GetList();
   auto argReg = argRegList.rbegin();
-  
+
   exp_list_.reverse();
   int i = exp_list_.size();
-  if(i<6){
-    for(int k = 0;k<6-i;k++)argReg++;
+  if (i < 6) {
+    for (int k = 0; k < 6 - i; k++)
+      argReg++;
   }
   for (Exp *arg_exp : exp_list_) {
     temp::Temp *arg_reg = arg_exp->Munch(instr_list, fs);
@@ -260,19 +261,19 @@ temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list,
       argReg++;
     } else {
       instr_list.Append(new assem::OperInstr(
-          "subq $" + std::to_string(reg_manager->WordSize()) + ", `d0", new temp::TempList(reg_manager->StackPointer()),
-          nullptr, nullptr));
+          "subq $" + std::to_string(reg_manager->WordSize()) + ", `d0",
+          new temp::TempList(reg_manager->StackPointer()), nullptr, nullptr));
       instr_list.Append(new assem::MoveInstr(
           "movq `s0, (`d0)", new temp::TempList(reg_manager->StackPointer()),
           new temp::TempList(arg_reg)));
     }
     i--;
   }
-  if(exp_list_.size()>6){
-    int addnum = reg_manager->WordSize()*(exp_list_.size()-6);
+  if (exp_list_.size() > 6) {
+    int addnum = reg_manager->WordSize() * (exp_list_.size() - 6);
     instr_list.Append(new assem::OperInstr(
-          "addq $" + std::to_string(addnum) + ", `d0", new temp::TempList(reg_manager->StackPointer()),
-          nullptr, nullptr));
+        "addq $" + std::to_string(addnum) + ", `d0",
+        new temp::TempList(reg_manager->StackPointer()), nullptr, nullptr));
   }
   // reverse after use
   exp_list_.reverse();

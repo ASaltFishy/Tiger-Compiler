@@ -230,7 +230,7 @@ tr::ExpAndTy *SubscriptVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                          new tree::ConstExp(reg_manager->WordSize()));
   tree::Exp *retExp =
       new tree::BinopExp(tree::PLUS_OP, arrayAddress->exp_->UnEx(), offsetExp);
-  return new tr::ExpAndTy(new tr::ExExp(retExp), retType);
+  return new tr::ExpAndTy(new tr::ExExp(new tree::MemExp(retExp)), retType);
 }
 
 tr::ExpAndTy *VarExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
@@ -693,15 +693,15 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     std::list<frame::Access *> *accessList =
         functionEntry->level_->frame_->formals_;
     // skip SL in accessList_it
-    printf("size: %d\n",accessList->size());
+    // printf("size: %ld\n",accessList->size());
     auto accessList_it = accessList->begin();
-    printf("access offset: %d\n",(*accessList_it)->getOffset());
+    // printf("access offset: %d\n",(*accessList_it)->getOffset());
     accessList_it++;
     std::list<type::Ty *> formaltys = functionEntry->formals_->GetList();
     auto type_it = formaltys.begin();
 
     for (Field *arg : function->params_->GetList()) {
-      printf("access offset: %d\n",(*accessList_it)->getOffset());
+      // printf("access offset: %d\n",(*accessList_it)->getOffset());
       venv->Enter(
           arg->name_,
           new env::VarEntry(
