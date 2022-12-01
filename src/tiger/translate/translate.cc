@@ -20,8 +20,8 @@ Access *Access::AllocLocal(Level *level, bool escape) {
 
 Level *Level::NewLevel(temp::Label *name, std::list<bool> escape,
                        Level *parent) {
-  // push static link into formal parameter
-  escape.push_front(true);
+  // push static link into formal parameter, have to put it in newFrame
+  // escape.push_front(true);
   return new Level(frame::Frame::newFrame(name, escape), parent);
 }
 
@@ -121,6 +121,8 @@ public:
     temp::Label *f = temp::LabelFactory::NewLabel();
     cx_.trues_.DoPatch(t);
     cx_.falses_.DoPatch(f);
+    ((tree::CjumpStm *)cx_.stm_)->true_label_ = t;
+    ((tree::CjumpStm *)cx_.stm_)->false_label_ = f;
     return new tree::EseqExp(
         new tree::MoveStm(new tree::TempExp(r), new tree::ConstExp(1)),
         new tree::EseqExp(
@@ -271,16 +273,26 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   env::FunEntry *entry = (env::FunEntry *)(venv->Look(func_));
   temp::Label *funcLabel = temp::LabelFactory::NamedLabel(func_->Name());
   tree::NameExp *name = new tree::NameExp(funcLabel);
+  tr::ExExp *retExp;
 
-  // add sl into arguement list
-  tree::Exp *static_link = findBySL(level, entry->level_);
   tree::ExpList *argList = new tree::ExpList();
-  argList->Append(static_link);
+  // arglist in callExp which is generated from parsing don't contain static
+  // link
   for (Exp *item : args_->GetList()) {
     tr::ExpAndTy *temp = item->Translate(venv, tenv, level, label, errormsg);
     argList->Append(temp->exp_->UnEx());
   }
-  tr::ExExp *retExp = new tr::ExExp(new tree::CallExp(name, argList));
+
+  if (!entry->level_->parent_) {
+    retExp = new tr::ExExp(frame::ExternalCall(func_->Name(), argList));
+  } else {
+    // add sl into arguement list
+    // target level is parent of the function
+    tree::Exp *static_link = findBySL(level, entry->level_->parent_);
+    argList->Insert(static_link);
+    retExp = new tr::ExExp(new tree::CallExp(name, argList));
+  }
+
   type::Ty *retType = entry->result_;
   return new tr::ExpAndTy(retExp, retType);
 }
@@ -438,6 +450,7 @@ tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   /* TODO: Put your lab5 code here */
   tr::ExpAndTy *test = test_->Translate(venv, tenv, level, label, errormsg);
   tr::ExpAndTy *then = then_->Translate(venv, tenv, level, label, errormsg);
+
   tr::Cx test_cx = test->exp_->UnCx(errormsg);
   tree::CjumpStm *cjump = (tree::CjumpStm *)(test_cx.stm_);
   tree::LabelStm *trueLabelStm = new tree::LabelStm(cjump->true_label_);
@@ -463,7 +476,10 @@ tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                         falseLabelStm,
                         new tree::EseqExp(
                             new tree::MoveStm(r, elsee->exp_->UnEx()),
-                            new tree::EseqExp(end, r)))))));
+                            new tree::EseqExp(
+                                new tree::JumpStm(new tree::NameExp(endLabel),
+                                                  jumps),
+                                new tree::EseqExp(end, r))))))));
     tr::ExExp *retExp = new tr::ExExp(temp);
     return new tr::ExpAndTy(retExp, then->ty_);
 
@@ -586,6 +602,11 @@ tr::ExpAndTy *LetExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   /* TODO: Put your lab5 code here */
   // record if it is main declaration
   static bool first = true;
+  bool isMain = false;
+  if (first) {
+    isMain = true;
+    first = false;
+  }
   venv->BeginScope();
   tenv->BeginScope();
   tree::Stm *decStm;
@@ -611,8 +632,7 @@ tr::ExpAndTy *LetExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     tempExp = check_body->exp_->UnEx();
   }
   decStm = new tree::ExpStm(tempExp);
-  if (first) {
-    first = false;
+  if (isMain) {
     frags->PushBack(new frame::ProcFrag(decStm, level->frame_));
   }
   return new tr::ExpAndTy(new tr::ExExp(tempExp), check_body->ty_);
@@ -651,6 +671,7 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
         function->params_->MakeFormalTyList(tenv, errormsg);
     temp::Label *funLabel =
         temp::LabelFactory::NamedLabel(function->name_->Name());
+    // add sl into it
     tr::Level *new_level = tr::Level::NewLevel(
         funLabel, function->params_->MakeEscapeList(), level);
     if (function->result_) {
@@ -671,11 +692,16 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
     std::list<frame::Access *> *accessList =
         functionEntry->level_->frame_->formals_;
+    // skip SL in accessList_it
+    printf("size: %d\n",accessList->size());
     auto accessList_it = accessList->begin();
+    printf("access offset: %d\n",(*accessList_it)->getOffset());
+    accessList_it++;
     std::list<type::Ty *> formaltys = functionEntry->formals_->GetList();
     auto type_it = formaltys.begin();
 
     for (Field *arg : function->params_->GetList()) {
+      printf("access offset: %d\n",(*accessList_it)->getOffset());
       venv->Enter(
           arg->name_,
           new env::VarEntry(
@@ -692,6 +718,7 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     frags->PushBack(new frame::ProcFrag(proc, functionEntry->level_->frame_));
     venv->EndScope();
   }
+  return new tr::ExExp(new tree::ConstExp(0));
 }
 
 tr::Exp *VarDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
@@ -715,13 +742,13 @@ tr::Exp *TypeDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   // first pass
   std::list<NameAndTy *> list = types_->GetList();
   for (NameAndTy *item : list) {
-    tenv->Enter(item->name_, nullptr);
+    tenv->Enter(item->name_, item->ty_->Translate(tenv, errormsg));
   }
-  // second pass (there may forward definition)
-  for (NameAndTy *item : list) {
-    type::NameTy *preSaved = (type::NameTy *)(tenv->Look(item->name_));
-    preSaved->ty_ = item->ty_->Translate(tenv, errormsg);
-  }
+  // // second pass (there may forward definition)
+  // for (NameAndTy *item : list) {
+  //   type::NameTy *preSaved = (type::NameTy *)(tenv->Look(item->name_));
+  //   preSaved->ty_ = item->ty_->Translate(tenv, errormsg);
+  // }
   return new tr::ExExp(new tree::ConstExp(0));
 }
 

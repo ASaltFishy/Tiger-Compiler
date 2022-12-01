@@ -73,6 +73,9 @@ public:
   /* TODO: Put your lab5 code here */
   virtual tree::Exp *ToExp(tree::Exp *framePtr) = 0;
   virtual ~Access() = default;
+
+  //for debug
+  virtual int getOffset() = 0;
 };
 
 class Frame {
@@ -83,7 +86,7 @@ private:
 public:
   std::list<Access *> *formals_;
 
-  Frame(temp::Label *name) : name_(name) {}
+  Frame(temp::Label *name) : name_(name) {formals_ = new std::list<Access *>();}
   std::string GetLabel() { return name_->Name(); }
   virtual int getFrameSize() = 0;
   virtual Access *getSLAccess() = 0;

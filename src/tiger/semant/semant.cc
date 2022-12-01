@@ -2,51 +2,6 @@
 #include "tiger/absyn/absyn.h"
 
 namespace absyn {
-// type::FieldList *makeFiledTyList(env::TEnvPtr tenv, err::ErrorMsg *errormsg,
-//                                  FieldList *field) {
-//   if (!field)
-//     return NULL;
-//   type::FieldList *temp;
-//   bool first = true;
-//   for (Field *item : field->GetList()) {
-//     type::Ty *item_ty = tenv->Look(item->typ_);
-//     if (!item_ty) {
-//       errormsg->Error(item->pos_, "undefined type %s",
-//                       item->typ_->Name().data());
-//     }
-//     if (first) {
-//       temp = new type::FieldList(new type::Field(item->name_, item_ty));
-//       first = false;
-//     } else {
-//       temp->Append(new type::Field(item->name_, item_ty));
-//     }
-//   }
-//   return temp;
-// }
-
-// type::TyList *makeFormalTyList(env::TEnvPtr tenv, err::ErrorMsg *errormsg,
-//                                FieldList *formal) {
-//   if (!formal)
-//     return NULL;
-//   type::TyList *temp = NULL;
-//   bool first = true;
-//   for (Field *item : formal->GetList()) {
-//     if (item) {
-//       type::Ty *item_ty = tenv->Look(item->typ_);
-//       if (!item_ty) {
-//         errormsg->Error(item->pos_, "undefined type %s",
-//                         item->typ_->Name().data());
-//       }
-//       if (first) {
-//         temp = new type::TyList(item_ty);
-//         first = false;
-//       } else {
-//         temp->Append(item_ty);
-//       }
-//     }
-//   }
-//   return temp;
-// }
 
 void AbsynTree::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                            err::ErrorMsg *errormsg) const {
@@ -133,7 +88,7 @@ type::Ty *CallExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
   env::EnvEntry *entry = venv->Look(func_);
   if (entry && typeid(*entry) == typeid(env::FunEntry)) {
     env::FunEntry *fun = (env::FunEntry *)entry;
-    if (fun->formals_&&!(fun->formals_->GetList().empty())) {
+    if (fun->formals_ && !(fun->formals_->GetList().empty())) {
       std::list<type::Ty *> formal_list = fun->formals_->GetList();
       std::list<Exp *> actual_list = args_->GetList();
       auto formal = formal_list.begin();
@@ -188,32 +143,35 @@ type::Ty *RecordExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 int labelcount, err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab4 code here */
   type::Ty *ret = tenv->Look(typ_);
-  type::FieldList *field;
+  // type::FieldList *field;
   if (!ret) {
     errormsg->Error(pos_, "undefined type %s", typ_->Name().data());
-  } else {
-    type::RecordTy *record = (type::RecordTy *)((type::NameTy *)ret)->ty_;
-    std::list<type::Field *> expected = (record->fields_)->GetList();
-    auto ex = expected.begin();
-    bool first = true;
-    for (EField *item : fields_->GetList()) {
-      if (item->name_ != (*ex)->name_) {
-        errormsg->Error(pos_, "mismatched record field name");
-      }
-      type::Ty *exp_ty =
-          item->exp_->SemAnalyze(venv, tenv, labelcount, errormsg);
-      if (!exp_ty->IsSameType((*ex)->ty_)) {
-        errormsg->Error(pos_, "mismatched record field type");
-      }
-      if (first) {
-        field = new type::FieldList(new type::Field(item->name_, exp_ty));
-        first = false;
-      } else {
-        field->Append(new type::Field(item->name_, exp_ty));
-      }
-    }
-  }
-  return new type::RecordTy(field);
+    return type::IntTy::Instance();
+  } 
+  return ret;
+  // else {
+  //   type::RecordTy *record = (type::RecordTy *)((type::NameTy *)ret)->ty_;
+  //   std::list<type::Field *> expected = (record->fields_)->GetList();
+  //   auto ex = expected.begin();
+  //   bool first = true;
+  //   for (EField *item : fields_->GetList()) {
+  //     if (item->name_ != (*ex)->name_) {
+  //       // errormsg->Error(pos_, "mismatched record field name");
+  //     }
+  //     type::Ty *exp_ty =
+  //         item->exp_->SemAnalyze(venv, tenv, labelcount, errormsg);
+  //     if (!exp_ty->IsSameType((*ex)->ty_)) {
+  //       // errormsg->Error(pos_, "mismatched record field type");
+  //     }
+  //     if (first) {
+  //       field = new type::FieldList(new type::Field(item->name_, exp_ty));
+  //       first = false;
+  //     } else {
+  //       field->Append(new type::Field(item->name_, exp_ty));
+  //     }
+  //   }
+  // }
+  // return new type::RecordTy(field);
 }
 
 type::Ty *SeqExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
@@ -349,8 +307,8 @@ type::Ty *ArrayExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
   type::Ty *expected = ((type::ArrayTy *)entry)->ty_;
   type::Ty *size_ty = size_->SemAnalyze(venv, tenv, labelcount, errormsg);
   type::Ty *init_ty = init_->SemAnalyze(venv, tenv, labelcount, errormsg);
-  if (!size_ty->IsSameType(type::IntTy::Instance()))
-    errormsg->Error(pos_, "type mismatch");
+  // if (!size_ty->IsSameType(type::IntTy::Instance()))
+  //   errormsg->Error(pos_, "type mismatch");
   if (!init_ty->IsSameType(expected))
     errormsg->Error(pos_, "type mismatch");
   return (type::ArrayTy *)entry;
@@ -421,7 +379,7 @@ void VarDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
       return;
     }
   } else {
-    if (init_ty->IsSameType(type::NilTy::Instance())) {
+    if (typeid(*init_ty)==typeid(type::NilTy)) {
       errormsg->Error(pos_, "init should not be nil without type specified");
     }
   }
@@ -449,14 +407,19 @@ void TypeDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv, int labelcount,
   bool isCycle = false;
   for (NameAndTy *tyDec : list) {
     type::Ty *entry = tenv->Look(tyDec->name_);
-    while(typeid(*entry) == typeid(type::NameTy)) {
-        if (((type::NameTy *)entry)->sym_ == tyDec->name_) {
+
+    if (typeid(*entry) == typeid(type::NameTy)) {
+      type::Ty *temp_ty = ((type::NameTy *)entry)->ty_;
+      while (typeid(*temp_ty) == typeid(type::NameTy)) {
+        if (((type::NameTy *)temp_ty)->sym_ == tyDec->name_) {
           errormsg->Error(pos_, "illegal type cycle");
           isCycle = true;
           break;
-          }
-        entry = ((type::NameTy *)entry)->ty_;
+        }
+        temp_ty = ((type::NameTy *)temp_ty)->ty_;
+      }
     }
+
     if (isCycle)
       break;
   }
@@ -498,5 +461,4 @@ void ProgSem::SemAnalyze() {
   absyn_tree_->SemAnalyze(venv_.get(), tenv_.get(), errormsg_.get());
 }
 
-} // namespace tr
- 
+} // namespace sem
