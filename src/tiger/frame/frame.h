@@ -84,9 +84,9 @@ private:
   temp::Label *name_;
 
 public:
-  std::list<Access *> *formals_;
+  std::list<Access *> formals_;
 
-  Frame(temp::Label *name) : name_(name) {formals_ = new std::list<Access *>();}
+  Frame(temp::Label *name) : name_(name) {}
   std::string GetLabel() { return name_->Name(); }
   virtual int getFrameSize() = 0;
   virtual Access *getSLAccess() = 0;

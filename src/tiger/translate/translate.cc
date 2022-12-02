@@ -325,12 +325,6 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     case DIVIDE_OP:
       op = tree::DIV_OP;
       break;
-    case AND_OP:
-      op = tree::AND_OP;
-      break;
-    case OR_OP:
-      op = tree::OR_OP;
-      break;
     default:
       break;
     }
@@ -354,6 +348,9 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       break;
     default:
       break;
+    }
+    if(oper_ == AND_OP || oper_==OR_OP){
+      printf("and!!! or!!!!\n");
     }
     temp::Label *trueLabel = temp::LabelFactory::NewLabel();
     temp::Label *falseLabel = temp::LabelFactory::NewLabel();
@@ -449,17 +446,18 @@ tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
   tr::ExpAndTy *test = test_->Translate(venv, tenv, level, label, errormsg);
-  tr::ExpAndTy *then = then_->Translate(venv, tenv, level, label, errormsg);
 
   tr::Cx test_cx = test->exp_->UnCx(errormsg);
   tree::CjumpStm *cjump = (tree::CjumpStm *)(test_cx.stm_);
   tree::LabelStm *trueLabelStm = new tree::LabelStm(cjump->true_label_);
   tree::LabelStm *falseLabelStm = new tree::LabelStm(cjump->false_label_);
 
+  tr::ExpAndTy *then = then_->Translate(venv, tenv, level, label, errormsg);
+
   if (elsee_ != NULL) {
     tr::ExpAndTy *elsee = elsee_->Translate(venv, tenv, level, label, errormsg);
     temp::Label *endLabel = temp::LabelFactory::NewLabel();
-    std::vector<temp::Label *> *jumps;
+    std::vector<temp::Label *> *jumps = new std::vector<temp::Label *>();
     jumps->push_back(endLabel);
     tree::LabelStm *end = new tree::LabelStm(endLabel);
     tree::Exp *r = new tree::TempExp(temp::TempFactory::NewTemp());
@@ -500,7 +498,8 @@ tr::ExpAndTy *WhileExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       test_->Translate(venv, tenv, level, label, errormsg);
   tr::Cx test_cx = check_test->exp_->UnCx(errormsg);
   tree::CjumpStm *cjump = (tree::CjumpStm *)(test_cx.stm_);
-  temp::Label *test_label = cjump->true_label_;
+  temp::Label *test_label = temp::LabelFactory::NewLabel();
+  temp::Label *body_label = cjump->true_label_;
   temp::Label *done_label = cjump->false_label_;
   auto *jumpList = new std::vector<temp::Label *>();
   jumpList->push_back(test_label);
@@ -511,10 +510,12 @@ tr::ExpAndTy *WhileExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       new tree::SeqStm(
           cjump,
           new tree::SeqStm(
-              check_body->exp_->UnNx(),
+              new tree::LabelStm(body_label),
               new tree::SeqStm(
-                  new tree::JumpStm(new tree::NameExp(test_label), jumpList),
-                  new tree::LabelStm(done_label)))));
+                  check_body->exp_->UnNx(),
+                  new tree::SeqStm(new tree::JumpStm(
+                                       new tree::NameExp(test_label), jumpList),
+                                   new tree::LabelStm(done_label))))));
   tr::NxExp *retExp = new tr::NxExp(tempStm);
   return new tr::ExpAndTy(retExp, check_body->ty_);
 }
@@ -525,6 +526,9 @@ tr::ExpAndTy *ForExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   /* TODO: Put your lab5 code here */
   tr::ExpAndTy *check_lo = lo_->Translate(venv, tenv, level, label, errormsg);
   tr::ExpAndTy *check_hi = hi_->Translate(venv, tenv, level, label, errormsg);
+  temp::Label *loop_label = temp::LabelFactory::NewLabel();
+  temp::Label *done_label = temp::LabelFactory::NewLabel();
+  temp::Label *body_label = temp::LabelFactory::NewLabel();
 
   // add local variable
   venv->BeginScope();
@@ -532,7 +536,7 @@ tr::ExpAndTy *ForExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       new env::VarEntry(tr::Access::AllocLocal(level, escape_), check_lo->ty_);
   venv->Enter(var_, i);
   tr::ExpAndTy *check_body =
-      body_->Translate(venv, tenv, level, label, errormsg);
+      body_->Translate(venv, tenv, level, done_label, errormsg);
   venv->EndScope();
 
   // genarate varExp and initialize it
@@ -549,17 +553,14 @@ tr::ExpAndTy *ForExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   tree::Stm *init_loopVar_stm =
       new tree::MoveStm(loopVar, check_lo->exp_->UnEx());
 
-  temp::Label *loop_label = temp::LabelFactory::NewLabel();
-  temp::Label *done_label = temp::LabelFactory::NewLabel();
-  temp::Label *body_label = temp::LabelFactory::NewLabel();
   auto labelList = new std::vector<temp::Label *>();
   labelList->push_back(body_label);
 
   tree::CjumpStm *largerThan = new tree::CjumpStm(
-      tree::LT_OP, loopVar, limitVar, done_label, body_label);
+      tree::GT_OP, loopVar, limitVar, done_label, body_label);
   tree::CjumpStm *equalTo = new tree::CjumpStm(tree::EQ_OP, loopVar, limitVar,
                                                done_label, loop_label);
-  tree::CjumpStm *lessThan = new tree::CjumpStm(tree::LE_OP, loopVar, limitVar,
+  tree::CjumpStm *lessThan = new tree::CjumpStm(tree::LT_OP, loopVar, limitVar,
                                                 loop_label, done_label);
   tree::Stm *increase_loop_var =
       new tree::MoveStm(loopVar, new tree::BinopExp(tree::PLUS_OP, loopVar,
@@ -690,18 +691,17 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     env::FunEntry *functionEntry =
         (env::FunEntry *)(venv->Look(function->name_));
 
-    std::list<frame::Access *> *accessList =
+    std::list<frame::Access *> accessList =
         functionEntry->level_->frame_->formals_;
     // skip SL in accessList_it
-    // printf("size: %ld\n",accessList->size());
-    auto accessList_it = accessList->begin();
-    // printf("access offset: %d\n",(*accessList_it)->getOffset());
+    printf("size: %ld\n", accessList.size());
+    auto accessList_it = accessList.begin();
+    printf("access offset: %d\n", (*accessList_it)->getOffset());
     accessList_it++;
     std::list<type::Ty *> formaltys = functionEntry->formals_->GetList();
     auto type_it = formaltys.begin();
 
     for (Field *arg : function->params_->GetList()) {
-      // printf("access offset: %d\n",(*accessList_it)->getOffset());
       venv->Enter(
           arg->name_,
           new env::VarEntry(

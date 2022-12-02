@@ -58,9 +58,6 @@ X64Frame::X64Frame(temp::Label *name, std::list<bool> formals) : Frame(name) {
 
 Access *X64Frame::AllocLocal(bool escape) {
   Access *ret = NULL;
-  if (formals_ == NULL) {
-    formals_ = new std::list<Access *>();
-  }
   if (escape) {
     // offset of static link equals to 8 (relative to frame pointer)
     count_++;
@@ -68,13 +65,14 @@ Access *X64Frame::AllocLocal(bool escape) {
   } else {
     ret = new InRegAccess(temp::TempFactory::NewTemp());
   }
-  formals_->push_back(ret);
+  formals_.push_back(ret);
+  printf("access offset: %d\n",ret->getOffset());
   return ret;
 }
 
 int X64Frame::getFrameSize() { return count_ * reg_manager->WordSize(); }
 
-Access *X64Frame::getSLAccess() { return formals_->front(); }
+Access *X64Frame::getSLAccess() { return formals_.front(); }
 
 Frame *Frame::newFrame(temp::Label *name, std::list<bool> formals) {
   formals.push_front(true);
@@ -83,7 +81,7 @@ Frame *Frame::newFrame(temp::Label *name, std::list<bool> formals) {
 
 // add section 4, 5 <body> 8
 tree::Stm *ProcEntryExit1(frame::Frame *frame, tree::Stm *body) {
-  int argNum = frame->formals_->size();// include SL
+  int argNum = frame->formals_.size();// include SL
   std::list<temp::Temp *> regList = reg_manager->ArgRegs()->GetList();
   regList.reverse();
   auto reg = regList.begin();
@@ -94,12 +92,13 @@ tree::Stm *ProcEntryExit1(frame::Frame *frame, tree::Stm *body) {
     }
   }
   // what happend to this iterator in reverse?????
-  frame->formals_->reverse();
-  for (auto it = frame->formals_->begin(); it != frame->formals_->end(); ++it) {
+  frame->formals_.reverse();
+  for (frame::Access *it : frame->formals_) {
     if (argNum <= 6) {
+      // printf("access offset: %d\n",it->getOffset());
       body = new tree::SeqStm(
           new tree::MoveStm(
-              (*it)->ToExp(new tree::TempExp(reg_manager->FramePointer())),new tree::TempExp(*reg)),
+              it->ToExp(new tree::TempExp(reg_manager->FramePointer())),new tree::TempExp(*reg)),
           body);
       reg++;
     } else {
@@ -108,14 +107,14 @@ tree::Stm *ProcEntryExit1(frame::Frame *frame, tree::Stm *body) {
           tree::BinOp::PLUS_OP, new tree::TempExp(reg_manager->FramePointer()),
           new tree::ConstExp(reg_manager->WordSize() * (argNum - 6))));
       body = new tree::SeqStm(
-          new tree::MoveStm((*it)->ToExp(new tree::TempExp(
+          new tree::MoveStm(it->ToExp(new tree::TempExp(
                                      reg_manager->FramePointer())), dst),
           body);
     }
     argNum--;
   }
   regList.reverse();
-  frame->formals_->reverse();
+  frame->formals_.reverse();
   return body;
 }
 assem::InstrList *ProcEntryExit2(assem::InstrList *body) {

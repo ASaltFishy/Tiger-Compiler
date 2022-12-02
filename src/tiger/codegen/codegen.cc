@@ -80,7 +80,7 @@ void CjumpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
   }
   auto labelList = new std::vector<temp::Label *>({true_label_});
   instr_list.Append(
-      new assem::OperInstr("cmpq `s0 `s1", nullptr,
+      new assem::OperInstr("cmpq `s0, `s1", nullptr,
                            new temp::TempList({right_reg, left_reg}), nullptr));
   instr_list.Append(new assem::OperInstr(op_str + true_label_->Name(), nullptr,
                                          nullptr,
