@@ -172,8 +172,8 @@ test_lab5() {
   local mergecase_name
 
   build test_codegen
-  for testcase in "$testcase_dir"/*.tig; do
-  # testcase=${testcase_dir}/test_patch.tig
+  # for testcase in "$testcase_dir"/*.tig; do
+  testcase=${testcase_dir}/test_patch.tig
     testcase_name=$(basename "$testcase" | cut -f1 -d".")
     local ref=${ref_dir}/${testcase_name}.out
     local assem=$testcase.s
@@ -203,7 +203,7 @@ test_lab5() {
       echo "Pass $testcase_name"
       score=$((score + 5))
     fi
-  done
+  # done
   rm -f "$testcase_dir"/*.tig.s
 
   if [[ $full_score == 0 ]]; then

@@ -226,13 +226,11 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
       new assem::MoveInstr("movq `s0, `d0", new temp::TempList(reg),
                            new temp::TempList(reg_manager->ReturnValue())));
 
-  // //reset rsp, it seems no need to reset this
-  // int argsize = args_->GetList().size();
-  // if(argsize>6){
-  //   instr_list.Append(new assem::OperInstr("addq
-  //   $"+std::to_string((argsize-6)*reg_manager->WordSize())+",
-  //   %rsp",nullptr,nullptr,nullptr));
-  // }
+  // reset rsp, discard the argument in stack after calling
+  int argsize = args_->GetList().size();
+  if (argsize > 6) {
+    instr_list.Append(new assem::OperInstr("addq $"+std::to_string((argsize-6)*reg_manager->WordSize())+", %rsp",nullptr,nullptr,nullptr));
+  }
 
   return reg;
 }
@@ -269,12 +267,7 @@ temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list,
     }
     i--;
   }
-  if (exp_list_.size() > 6) {
-    int addnum = reg_manager->WordSize() * (exp_list_.size() - 6);
-    instr_list.Append(new assem::OperInstr(
-        "addq $" + std::to_string(addnum) + ", `d0",
-        new temp::TempList(reg_manager->StackPointer()), nullptr, nullptr));
-  }
+  
   // reverse after use
   exp_list_.reverse();
   return res;

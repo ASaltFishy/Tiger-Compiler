@@ -349,9 +349,6 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     default:
       break;
     }
-    if(oper_ == AND_OP || oper_==OR_OP){
-      printf("and!!! or!!!!\n");
-    }
     temp::Label *trueLabel = temp::LabelFactory::NewLabel();
     temp::Label *falseLabel = temp::LabelFactory::NewLabel();
     tempStm = new tree::CjumpStm(op, leftExp, rightExp, trueLabel, falseLabel);
@@ -379,6 +376,16 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       stm = new tree::CjumpStm(tree::RelOp::NE_OP, leftExp, rightExp, trueLabel,
                                falseLabel);
       break;
+    case AND_OP:{
+      IfExp *changeToIf = new IfExp(pos_,left_,right_,new IntExp(pos_,0));
+      return changeToIf->Translate(venv, tenv, level, label, errormsg);
+      break;
+    }
+    case OR_OP:{
+      IfExp *changeToIf = new IfExp(pos_,left_,new IntExp(pos_,1),right_);
+      return changeToIf->Translate(venv, tenv, level, label, errormsg);
+      break;
+    }
     default:
       break;
     }
