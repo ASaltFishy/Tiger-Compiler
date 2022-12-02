@@ -324,9 +324,9 @@ void FunctionDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
                              int labelcount, err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab4 code here */
   std::list<FunDec *> function_list = functions_->GetList();
-  type::Ty *result;
   // first pass
   for (FunDec *function : function_list) {
+    type::Ty *result;
     if (venv->Look(function->name_)) {
       errormsg->Error(pos_, "two functions have the same name");
     }
@@ -342,8 +342,9 @@ void FunctionDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
   for (FunDec *function : function_list) {
     venv->BeginScope();
     FieldList *para = function->params_;
+    env::FunEntry *entry = (env::FunEntry *)(venv->Look(function->name_));
     type::TyList *formal =
-        ((env::FunEntry *)(venv->Look(function->name_)))->formals_;
+        entry->formals_;
     if (formal && para) {
       auto formal_it = formal->GetList().begin();
       auto para_it = para->GetList().begin();
@@ -351,6 +352,7 @@ void FunctionDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
         venv->Enter((*para_it)->name_, new env::VarEntry(*formal_it));
       }
     }
+    type::Ty *result = entry->result_;
     type::Ty *retTy =
         function->body_->SemAnalyze(venv, tenv, labelcount, errormsg);
     if (!retTy->IsSameType(result)) {

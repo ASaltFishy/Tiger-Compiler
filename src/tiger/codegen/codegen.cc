@@ -218,18 +218,52 @@ temp::Temp *ConstExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   /* TODO: Put your lab5 code here */
   temp::Temp *reg = temp::TempFactory::NewTemp();
-  temp::TempList *argRegs = args_->MunchArgs(instr_list, fs);
+  temp::TempList *argTemps = args_->MunchArgs(instr_list, fs);
+  int argsize = args_->GetList().size();
+
+  // set args and move rsp (fp will not be used)
+  std::list<temp::Temp *> argRegList = reg_manager->ArgRegs()->GetList();
+  auto argReg = argRegList.begin();
+  temp::TempList *active = new temp::TempList();
+  int i = 1;
+  for (temp::Temp *temp : argTemps->GetList()) {
+    if (i <= 6) {
+      instr_list.Append(new assem::MoveInstr("movq `s0, `d0",
+                                             new temp::TempList(*argReg),
+                                             new temp::TempList(temp)));
+      active->Append(*argReg);
+      argReg++;
+      i++;
+    } else {
+      auto arg_rev_it = argTemps->GetList().rbegin();
+      i = argsize;
+      while (i > 6) {
+        instr_list.Append(new assem::OperInstr(
+            "subq $" + std::to_string(reg_manager->WordSize()) + ", `d0",
+            new temp::TempList(reg_manager->StackPointer()), nullptr, nullptr));
+        instr_list.Append(new assem::MoveInstr(
+            "movq `s0, (`d0)", new temp::TempList(reg_manager->StackPointer()),
+            new temp::TempList((*arg_rev_it))));
+        i--;
+        arg_rev_it++;
+      }
+      break;
+    }
+  }
+
   std::string assem = "callq " + ((tree::NameExp *)fun_)->name_->Name();
-  instr_list.Append(new assem::OperInstr(assem, reg_manager->CallerSaves(),
-                                         argRegs, nullptr));
+  instr_list.Append(
+      new assem::OperInstr(assem, reg_manager->CallerSaves(), active, nullptr));
   instr_list.Append(
       new assem::MoveInstr("movq `s0, `d0", new temp::TempList(reg),
                            new temp::TempList(reg_manager->ReturnValue())));
 
   // reset rsp, discard the argument in stack after calling
-  int argsize = args_->GetList().size();
   if (argsize > 6) {
-    instr_list.Append(new assem::OperInstr("addq $"+std::to_string((argsize-6)*reg_manager->WordSize())+", %rsp",nullptr,nullptr,nullptr));
+    instr_list.Append(new assem::OperInstr(
+        "addq $" + std::to_string((argsize - 6) * reg_manager->WordSize()) +
+            ", %rsp",
+        nullptr, nullptr, nullptr));
   }
 
   return reg;
@@ -239,38 +273,52 @@ temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list,
                                    std::string_view fs) {
   /* TODO: Put your lab5 code here */
   auto res = new temp::TempList();
-  int arg_num = exp_list_.size();
-  std::list<temp::Temp *> argRegList = reg_manager->ArgRegs()->GetList();
-  auto argReg = argRegList.rbegin();
-
-  exp_list_.reverse();
-  int i = exp_list_.size();
-  if (i < 6) {
-    for (int k = 0; k < 6 - i; k++)
-      argReg++;
+  for (auto arg : exp_list_) {
+    res->Append(arg->Munch(instr_list, fs));
   }
-  for (Exp *arg_exp : exp_list_) {
-    temp::Temp *arg_reg = arg_exp->Munch(instr_list, fs);
-    if (i <= 6) {
-      instr_list.Append(new assem::MoveInstr("movq `s0, `d0",
-                                             new temp::TempList(*argReg),
-                                             new temp::TempList(arg_reg)));
-      res->Append(*argReg);
-      argReg++;
-    } else {
-      instr_list.Append(new assem::OperInstr(
-          "subq $" + std::to_string(reg_manager->WordSize()) + ", `d0",
-          new temp::TempList(reg_manager->StackPointer()), nullptr, nullptr));
-      instr_list.Append(new assem::MoveInstr(
-          "movq `s0, (`d0)", new temp::TempList(reg_manager->StackPointer()),
-          new temp::TempList(arg_reg)));
-    }
-    i--;
-  }
-  
-  // reverse after use
-  exp_list_.reverse();
   return res;
+
+  // std::list<temp::Temp *> argRegList = reg_manager->ArgRegs()->GetList();
+  // auto argReg = argRegList.begin();
+
+  // exp_list_.reverse();
+  // int i = exp_list_.size();
+  // if (i < 6) {
+  //   for (int k = 0; k < 6 - i; k++)
+  //     argReg++;
+  // }
+  // int i = 1;
+  // for (Exp *arg_exp : exp_list_) {
+  //   temp::Temp *arg_reg = arg_exp->Munch(instr_list, fs);
+  //   if (i <= 6) {
+  //     instr_list.Append(new assem::MoveInstr("movq `s0, `d0",
+  //                                            new temp::TempList(*argReg),
+  //                                            new temp::TempList(arg_reg)));
+  //     res->Append(*argReg);
+  //     argReg++;
+  //     i++;
+  //   } else {
+  //     auto arg_rev_it = exp_list_.rbegin();
+  //     i = exp_list_.size();
+  //     while (i > 6) {
+  //       instr_list.Append(new assem::OperInstr(
+  //           "subq $" + std::to_string(reg_manager->WordSize()) + ", `d0",
+  //           new temp::TempList(reg_manager->StackPointer()), nullptr,
+  //           nullptr));
+  //       instr_list.Append(new assem::MoveInstr(
+  //           "movq `s0, (`d0)", new
+  //           temp::TempList(reg_manager->StackPointer()), new
+  //           temp::TempList((*arg_rev_it)->Munch(instr_list, fs))));
+  //       i--;
+  //       arg_rev_it++;
+  //     }
+  //     break;
+  //   }
+  // }
+
+  // // reverse after use
+  // // exp_list_.reverse();
+  // return res;
 }
 
 } // namespace tree
