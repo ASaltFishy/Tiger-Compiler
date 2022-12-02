@@ -378,8 +378,8 @@ type::TyList *FieldList::MakeFormalTyList(env::TEnvPtr tenv,
     type::Ty *ty = tenv->Look(param->typ_);
 
     if (!ty) {
-      // errormsg->Error(param->pos_, "undefined type %s",
-      //                 param->typ_->Name().c_str());
+      errormsg->Error(param->pos_, "undefined type %s",
+                      param->typ_->Name().c_str());
     }
     formal_tylist->Append(ty);
   }
@@ -398,8 +398,8 @@ type::FieldList *FieldList::MakeFieldList(env::TEnvPtr tenv,
   for (absyn::Field *a_field : field_list_) {
     type::Ty *ty = tenv->Look(a_field->typ_);
     if (ty == nullptr) {
-      // errormsg->Error(a_field->pos_, "undefined type %s",
-      //                 a_field->typ_->Name().c_str());
+      errormsg->Error(a_field->pos_, "undefined type %s",
+                      a_field->typ_->Name().c_str());
     }
     ty_field_list->Append(new type::Field(a_field->name_, ty));
   }

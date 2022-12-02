@@ -701,9 +701,9 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     std::list<frame::Access *> accessList =
         functionEntry->level_->frame_->formals_;
     // skip SL in accessList_it
-    printf("size: %ld\n", accessList.size());
+    // printf("size: %ld\n", accessList.size());
     auto accessList_it = accessList.begin();
-    printf("access offset: %d\n", (*accessList_it)->getOffset());
+    // printf("access offset: %d\n", (*accessList_it)->getOffset());
     accessList_it++;
     std::list<type::Ty *> formaltys = functionEntry->formals_->GetList();
     auto type_it = formaltys.begin();
@@ -749,13 +749,12 @@ tr::Exp *TypeDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   // first pass
   std::list<NameAndTy *> list = types_->GetList();
   for (NameAndTy *item : list) {
-    tenv->Enter(item->name_, item->ty_->Translate(tenv, errormsg));
+    tenv->Enter(item->name_, type::VoidTy::Instance());
   }
-  // // second pass (there may forward definition)
-  // for (NameAndTy *item : list) {
-  //   type::NameTy *preSaved = (type::NameTy *)(tenv->Look(item->name_));
-  //   preSaved->ty_ = item->ty_->Translate(tenv, errormsg);
-  // }
+  // second pass (there may forward definition)
+  for (NameAndTy *item : list) {
+    tenv->Set(item->name_,item->ty_->Translate(tenv, errormsg));
+  }
   return new tr::ExExp(new tree::ConstExp(0));
 }
 

@@ -66,7 +66,7 @@ Access *X64Frame::AllocLocal(bool escape) {
     ret = new InRegAccess(temp::TempFactory::NewTemp());
   }
   formals_.push_back(ret);
-  printf("access offset: %d\n",ret->getOffset());
+  // printf("access offset: %d\n",ret->getOffset());
   return ret;
 }
 
