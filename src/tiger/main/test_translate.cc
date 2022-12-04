@@ -22,7 +22,6 @@ int main(int argc, char **argv) {
 
   {
     std::unique_ptr<err::ErrorMsg> errormsg;
-
     {
       // Lab 3: parsing
     //   TigerLog("-------====Parse=====-----\n");

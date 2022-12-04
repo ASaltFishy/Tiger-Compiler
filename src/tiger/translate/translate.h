@@ -57,11 +57,25 @@ public:
   Level *parent_;
 
   /* TODO: Put your lab5 code here */
+  Level(frame::Frame *frame,Level *parent):frame_(frame),parent_(parent){}
+  Level(){
+  }
+  static Level *NewLevel(temp::Label *name,std::list<bool> escape,Level *parent);
+  temp::Temp *getFramePointer();
 };
 
 class ProgTr {
 public:
   // TODO: Put your lab5 code here */
+  // point to the top level
+  ProgTr(std::unique_ptr<absyn::AbsynTree> absyn_tree,std::unique_ptr<err::ErrorMsg> errormsg):
+  absyn_tree_(std::move(absyn_tree)), errormsg_(std::move(errormsg)),tenv_(std::make_unique<env::TEnv>()),
+        venv_(std::make_unique<env::VEnv>()){
+          std::list<bool> formal;
+          main_level_ = std::make_unique<Level>(frame::Frame::newFrame(temp::LabelFactory::NamedLabel("tigermain"),formal),nullptr);
+          FillBaseTEnv();
+          FillBaseVEnv();
+        }
 
   /**
    * Translate IR tree
