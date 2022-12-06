@@ -278,47 +278,6 @@ temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list,
   }
   return res;
 
-  // std::list<temp::Temp *> argRegList = reg_manager->ArgRegs()->GetList();
-  // auto argReg = argRegList.begin();
-
-  // exp_list_.reverse();
-  // int i = exp_list_.size();
-  // if (i < 6) {
-  //   for (int k = 0; k < 6 - i; k++)
-  //     argReg++;
-  // }
-  // int i = 1;
-  // for (Exp *arg_exp : exp_list_) {
-  //   temp::Temp *arg_reg = arg_exp->Munch(instr_list, fs);
-  //   if (i <= 6) {
-  //     instr_list.Append(new assem::MoveInstr("movq `s0, `d0",
-  //                                            new temp::TempList(*argReg),
-  //                                            new temp::TempList(arg_reg)));
-  //     res->Append(*argReg);
-  //     argReg++;
-  //     i++;
-  //   } else {
-  //     auto arg_rev_it = exp_list_.rbegin();
-  //     i = exp_list_.size();
-  //     while (i > 6) {
-  //       instr_list.Append(new assem::OperInstr(
-  //           "subq $" + std::to_string(reg_manager->WordSize()) + ", `d0",
-  //           new temp::TempList(reg_manager->StackPointer()), nullptr,
-  //           nullptr));
-  //       instr_list.Append(new assem::MoveInstr(
-  //           "movq `s0, (`d0)", new
-  //           temp::TempList(reg_manager->StackPointer()), new
-  //           temp::TempList((*arg_rev_it)->Munch(instr_list, fs))));
-  //       i--;
-  //       arg_rev_it++;
-  //     }
-  //     break;
-  //   }
-  // }
-
-  // // reverse after use
-  // // exp_list_.reverse();
-  // return res;
 }
 
 } // namespace tree

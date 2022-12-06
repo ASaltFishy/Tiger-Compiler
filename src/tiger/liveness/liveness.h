@@ -68,6 +68,11 @@ private:
   void InterfGraph();
 };
 
+temp::TempList *Union(temp::TempList *a, temp::TempList *b);
+temp::TempList *Except(temp::TempList *origin, temp::TempList *except);
+bool Contain(temp::TempList *origin, temp::Temp *reg);
+bool Equal(temp::TempList *old_list, temp::TempList *new_list);
+
 } // namespace live
 
 #endif

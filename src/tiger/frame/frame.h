@@ -51,6 +51,8 @@ public:
    */
   [[nodiscard]] virtual temp::TempList *ReturnSink() = 0;
 
+  [[nodiscard]] virtual temp::TempList *intialInterfere() = 0;
+
   /**
    * Get word size
    */

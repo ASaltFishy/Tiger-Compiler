@@ -13,7 +13,7 @@ class X64RegManager : public RegManager {
 public:
   temp::Temp *rax, *rbx, *rcx, *rdx, *rsp, *rbp, *rsi, *rdi, *r8, *r9, *r10,
       *r11, *r12, *r13, *r14, *r15;
-  temp::TempList *registers, *caller_save, *callee_save, *arg_reg, *return_sink;
+  temp::TempList *registers, *caller_save, *callee_save, *arg_reg, *return_sink, *initialInterfere;
   X64RegManager() {
     rax = temp::TempFactory::NewTemp();
     rbx = temp::TempFactory::NewTemp();
@@ -39,6 +39,9 @@ public:
     arg_reg = new temp::TempList({rdi, rsi, rdx, rcx, r8, r9});
     // which register is active in the exit of function
     return_sink = new temp::TempList({rsp, rax, rbx, rbp, r12, r13, r14, r15});
+    initialInterfere = new temp::TempList({rax, rdi, rdx, rcx, r8, r9, r10, r11, rbx,
+                                    rbp, r12, r13, r14, r15});
+
     temp_map_ = temp::Map::Empty();
     temp_map_->Enter(rax, new std::string("%rax"));
     temp_map_->Enter(rdi, new std::string("%rdi"));
@@ -75,6 +78,10 @@ public:
   temp::Temp *StackPointer() override { return rsp; }
 
   temp::Temp *ReturnValue() override { return rax; }
+
+  temp::TempList *intialInterfere() override {
+     return initialInterfere;
+    }
 };
 
 } // namespace frame
