@@ -8,7 +8,7 @@ void FlowGraphFactory::AssemFlowGraph() {
   // one pass
   for (assem::Instr *instruction : instr_list_->GetList()) {
     FNode *prev = nullptr;
-    if (instr_list_->GetList().size() != 0) {
+    if (flowgraph_->Nodes()->GetList().size() != 0) {
       prev = flowgraph_->Nodes()->GetList().back();
     }
     FNode *newNode = flowgraph_->NewNode(instruction);
@@ -107,4 +107,5 @@ temp::TempList *OperInstr::Use() const {
   else
     return new temp::TempList();
 }
+
 } // namespace assem

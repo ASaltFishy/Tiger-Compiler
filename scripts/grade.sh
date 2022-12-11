@@ -173,7 +173,7 @@ test_lab5() {
 
   build test_codegen
   for testcase in "$testcase_dir"/*.tig; do
-  # testcase=${testcase_dir}/prime.tig
+    # testcase=${testcase_dir}/prime.tig
     testcase_name=$(basename "$testcase" | cut -f1 -d".")
     local ref=${ref_dir}/${testcase_name}.out
     local assem=$testcase.s
@@ -228,13 +228,16 @@ test_lab6() {
   local mergecase_name
 
   build tiger-compiler
-  for testcase in "$testcase_dir"/*.tig; do
+  # for testcase in "$testcase_dir"/*.tig; do
+    testcase=${testcase_dir}/tlink.tig
     testcase_name=$(basename "$testcase" | cut -f1 -d".")
     local ref=${ref_dir}/${testcase_name}.out
     local assem=$testcase.s
 
-    ./tiger-compiler "$testcase" &>/dev/null
-    gcc -Wl,--wrap,getchar -m64 "$assem" "$runtime_path" -o test.out &>/dev/null
+    # ./tiger-compiler "$testcase" &>/dev/null
+    # gcc -Wl,--wrap,getchar -m64 "$assem" "$runtime_path" -o test.out &>/dev/null
+    ./tiger-compiler "$testcase"
+    gcc -Wl,--wrap,getchar -m64 "$assem" "$runtime_path" -o test.out
     if [ ! -s test.out ]; then
       echo "Error: Link error [$testcase_name]"
       full_score=0
@@ -266,7 +269,7 @@ test_lab6() {
       echo "Pass $testcase_name"
       score=$((score + 5))
     fi
-  done
+  # done
   rm -f "$testcase_dir"/*.tig.s
 
   if [[ $full_score == 0 ]]; then

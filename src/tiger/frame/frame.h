@@ -53,6 +53,7 @@ public:
 
   [[nodiscard]] virtual temp::TempList *intialInterfere() = 0;
 
+
   /**
    * Get word size
    */
@@ -93,6 +94,7 @@ public:
   virtual int getFrameSize() = 0;
   virtual Access *getSLAccess() = 0;
   virtual Access *AllocLocal(bool escape) = 0;
+  virtual int ExpandFrame(int addWord) =0;
   [[nodiscard]] static Frame *newFrame(temp::Label *name,
                                        std::list<bool> formals);
 };

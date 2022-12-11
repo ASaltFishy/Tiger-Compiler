@@ -31,7 +31,7 @@ public:
     r13 = temp::TempFactory::NewTemp();
     r14 = temp::TempFactory::NewTemp();
     r15 = temp::TempFactory::NewTemp();
-    registers = new temp::TempList({rax, rdi, rdx, rcx, r8, r9, r10, r11, rbx,
+    registers = new temp::TempList({rax, rdi, rsi, rdx, rcx, r8, r9, r10, r11, rbx,
                                     rbp, r12, r13, r14, r15, rsp});
     caller_save =
         new temp::TempList({rax, rdi, rsi, rdx, rcx, r8, r9, r10, r11});
@@ -39,7 +39,7 @@ public:
     arg_reg = new temp::TempList({rdi, rsi, rdx, rcx, r8, r9});
     // which register is active in the exit of function
     return_sink = new temp::TempList({rsp, rax, rbx, rbp, r12, r13, r14, r15});
-    initialInterfere = new temp::TempList({rax, rdi, rdx, rcx, r8, r9, r10, r11, rbx,
+    initialInterfere = new temp::TempList({rax, rdi, rsi, rdx, rcx, r8, r9, r10, r11, rbx,
                                     rbp, r12, r13, r14, r15});
 
     temp_map_ = temp::Map::Empty();

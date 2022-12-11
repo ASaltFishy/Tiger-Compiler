@@ -46,6 +46,7 @@ public:
   Access *AllocLocal(bool escape) override;
   Access *getSLAccess() override;
   int getFrameSize() override;
+  int ExpandFrame(int addWord) override;
 };
 
 /* TODO: Put your lab5 code here */
@@ -54,6 +55,11 @@ X64Frame::X64Frame(temp::Label *name, std::list<bool> formals) : Frame(name) {
   for (bool escape_ : formals) {
     AllocLocal(escape_);
   }
+}
+
+int X64Frame::ExpandFrame(int addWord){
+  count_+=addWord;
+  return count_ * reg_manager->WordSize();
 }
 
 Access *X64Frame::AllocLocal(bool escape) {
