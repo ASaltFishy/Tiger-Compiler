@@ -31,6 +31,7 @@ void FlowGraphFactory::AssemFlowGraph() {
         if (dst == nullptr)
           break;
         FNode *jumpTo = label_map_->Look(dst);
+        assert(jumpTo);
         flowgraph_->AddEdge(node, jumpTo);
       }
     }

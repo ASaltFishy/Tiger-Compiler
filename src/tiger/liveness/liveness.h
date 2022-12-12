@@ -2,19 +2,19 @@
 #define TIGER_LIVENESS_LIVENESS_H_
 
 #include "tiger/codegen/assem.h"
-#include "tiger/frame/x64frame.h"
 #include "tiger/frame/temp.h"
+#include "tiger/frame/x64frame.h"
 #include "tiger/liveness/flowgraph.h"
 #include "tiger/util/graph.h"
 
 namespace live {
 
 using INode = graph::Node<temp::Temp>;
-using INodePtr = graph::Node<temp::Temp>*;
+using INodePtr = graph::Node<temp::Temp> *;
 using INodeList = graph::NodeList<temp::Temp>;
-using INodeListPtr = graph::NodeList<temp::Temp>*;
+using INodeListPtr = graph::NodeList<temp::Temp> *;
 using IGraph = graph::Graph<temp::Temp>;
-using IGraphPtr = graph::Graph<temp::Temp>*;
+using IGraphPtr = graph::Graph<temp::Temp> *;
 
 class MoveList {
 public:
@@ -24,7 +24,10 @@ public:
   GetList() const {
     return move_list_;
   }
-  void Append(INodePtr src, INodePtr dst) { move_list_.emplace_back(src, dst); }
+  void Append(INodePtr src, INodePtr dst) {
+    if (!Contain(src, dst))
+      move_list_.emplace_back(src, dst);
+  }
   bool Contain(INodePtr src, INodePtr dst);
   void Delete(INodePtr src, INodePtr dst);
   void Prepend(INodePtr src, INodePtr dst) {
@@ -43,7 +46,7 @@ struct LiveGraph {
 
   LiveGraph(IGraphPtr interf_graph, MoveList *moves)
       : interf_graph(interf_graph), moves(moves) {}
-  LiveGraph() {};
+  LiveGraph(){};
 };
 
 class LiveGraphFactory {

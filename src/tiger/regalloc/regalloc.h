@@ -65,6 +65,7 @@ public:
   void addWorkList(live::INodePtr u);
   void Combine(live::INodePtr u, live::INodePtr v);
   void FreezeMoves(live::INodePtr u);
+  void init();
 
 private:
   live::INodeListPtr precolored = nullptr;
@@ -95,6 +96,9 @@ private:
 
 
   int K;
+
+  // for debug
+  FILE *file;
 };
 
 } // namespace ra

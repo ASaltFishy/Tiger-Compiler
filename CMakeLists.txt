@@ -72,27 +72,27 @@ add_custom_target(
 )
 
 # lab 1
-add_executable(test_slp ${SLP_SOURCES})
+# add_executable(test_slp ${SLP_SOURCES})
 
 # lab 2
-add_executable(test_lex "src/tiger/main/test_lex.cc" ${TIGER_SOURCES} ${TIGER_LEX_PARSE_SOURCES})
-add_dependencies(test_lex lex_parse_sources)
+# add_executable(test_lex "src/tiger/main/test_lex.cc" ${TIGER_SOURCES} ${TIGER_LEX_PARSE_SOURCES})
+# add_dependencies(test_lex lex_parse_sources)
 
 # lab 3
-add_executable(test_parse "src/tiger/main/test_parse.cc" ${TIGER_SOURCES} ${TIGER_LEX_PARSE_SOURCES})
-add_dependencies(test_parse lex_parse_sources)
+# add_executable(test_parse "src/tiger/main/test_parse.cc" ${TIGER_SOURCES} ${TIGER_LEX_PARSE_SOURCES})
+# add_dependencies(test_parse lex_parse_sources)
 
 # lab 4
-add_executable(test_semant "src/tiger/main/test_semant.cc" ${TIGER_SOURCES} ${TIGER_LEX_PARSE_SOURCES})
-add_dependencies(test_semant lex_parse_sources)
+# add_executable(test_semant "src/tiger/main/test_semant.cc" ${TIGER_SOURCES} ${TIGER_LEX_PARSE_SOURCES})
+# add_dependencies(test_semant lex_parse_sources)
 
 # lab5 part 1
-add_executable(test_translate "src/tiger/main/test_translate.cc" ${TIGER_SOURCES} ${TIGER_LEX_PARSE_SOURCES})
-add_dependencies(test_translate lex_parse_sources)
+# add_executable(test_translate "src/tiger/main/test_translate.cc" ${TIGER_SOURCES} ${TIGER_LEX_PARSE_SOURCES})
+# add_dependencies(test_translate lex_parse_sources)
 
 # lab 5 part 2
-add_executable(test_codegen "src/tiger/main/test_codegen.cc" ${TIGER_SOURCES} ${TIGER_LEX_PARSE_SOURCES})
-add_dependencies(test_codegen lex_parse_sources)
+# add_executable(test_codegen "src/tiger/main/test_codegen.cc" ${TIGER_SOURCES} ${TIGER_LEX_PARSE_SOURCES})
+# add_dependencies(test_codegen lex_parse_sources)
 
 # lab 6
 add_executable(tiger-compiler "src/tiger/main/main.cc" ${TIGER_SOURCES} ${TIGER_LEX_PARSE_SOURCES})

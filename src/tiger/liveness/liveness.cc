@@ -63,7 +63,7 @@ void LiveGraphFactory::LiveMap() {
       temp::TempList *old_in = in_->Look(node);
       // compute out set
       for (fg::FNode *succ : node->Succ()->GetList()) {
-        out_->Set(node, Union(out_->Look(node), out_->Look(succ)));
+        out_->Set(node, Union(out_->Look(node), in_->Look(succ)));
       }
       // compute in set
       temp::TempList *out = out_->Look(node);
@@ -112,17 +112,21 @@ void LiveGraphFactory::InterfGraph() {
       all_reg.insert(it);
     }
   }
+  // 剔除precolored
+  for (temp::Temp *reg : reg_manager->intialInterfere()->GetList()){
+    all_reg.erase(reg);
+  }
   for (auto &it : all_reg) {
     temp_node_map_->Enter(it, g->NewNode(it));
   }
 
   // step3 add edge appearing in out[n]
   for (fg::FNode *node : flowgraph_->Nodes()->GetList()) {
-    temp::TempList *out = out_->Look(node);
+    temp::TempList *outRegs = out_->Look(node);
     // not move instruction
     if (!fg::isMove(node)) {
       for (temp::Temp *def : node->NodeInfo()->Def()->GetList()) {
-        for (temp::Temp *out : out->GetList()) {
+        for (temp::Temp *out : outRegs->GetList()) {
           if (def != reg_manager->StackPointer() && out != reg_manager->StackPointer()) {
             g->AddEdge(temp_node_map_->Look(def), temp_node_map_->Look(out));
             g->AddEdge(temp_node_map_->Look(out), temp_node_map_->Look(def));
@@ -133,7 +137,7 @@ void LiveGraphFactory::InterfGraph() {
     // move instruction
     else {
       for (temp::Temp *def : node->NodeInfo()->Def()->GetList()) {
-        for (temp::Temp *out : Except(out,node->NodeInfo()->Use())->GetList()) {
+        for (temp::Temp *out : Except(outRegs,node->NodeInfo()->Use())->GetList()) {
           if (def != reg_manager->StackPointer() && out != reg_manager->StackPointer()) {
             g->AddEdge(temp_node_map_->Look(def), temp_node_map_->Look(out));
             g->AddEdge(temp_node_map_->Look(out), temp_node_map_->Look(def));
