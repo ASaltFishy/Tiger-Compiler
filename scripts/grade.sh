@@ -228,45 +228,48 @@ test_lab6() {
   local mergecase_name
 
   build tiger-compiler
+  # rm -f "$testcase_dir"/*.tig.s
   # for testcase in "$testcase_dir"/*.tig; do
-    testcase=${testcase_dir}/tbi.tig
-    testcase_name=$(basename "$testcase" | cut -f1 -d".")
-    local ref=${ref_dir}/${testcase_name}.out
-    local assem=$testcase.s
+  testcase=${testcase_dir}/tree.tig
+  testcase_name=$(basename "$testcase" | cut -f1 -d".")
+  local ref=${ref_dir}/${testcase_name}.out
+  local assem=$testcase.s
 
-    ./tiger-compiler "$testcase" &>/dev/null
-    gcc -Wl,--wrap,getchar -m64 "$assem" "$runtime_path" -o test.out &>/dev/null
-    if [ ! -s test.out ]; then
-      echo "Error: Link error [$testcase_name]"
-      full_score=0
-      continue
-    fi
+  ./tiger-compiler "$testcase" &>/dev/null
+  gcc -Wl,--wrap,getchar -m64 "$assem" "$runtime_path" -o test.out &>/dev/null
+  # ./tiger-compiler "$testcase" 
+  # gcc -Wl,--wrap,getchar -m64 "$assem" "$runtime_path" -o test.out
+  if [ ! -s test.out ]; then
+    echo "Error: Link error [$testcase_name]"
+    full_score=0
+    continue
+  fi
 
-    if [[ $testcase_name == "merge" ]]; then
-      for mergecase in "$mergecase_dir"/*.in; do
-        mergecase_name=$(basename "$mergecase" | cut -f1 -d".")
-        local mergeref=${mergeref_dir}/${mergecase_name}.out
-        ./test.out <"$mergecase" >&/tmp/output.txt
-        diff -w -B /tmp/output.txt "$mergeref"
-        if [[ $? != 0 ]]; then
-          echo "Error: Output mismatch [$testcase_name/$mergecase_name]"
-          full_score=0
-          continue
-        fi
-        score=$((score + 5))
-        echo "Pass $testcase_name/$mergecase_name"
-      done
-    else
-      ./test.out >&/tmp/output.txt
-      diff -w -B /tmp/output.txt "$ref"
+  if [[ $testcase_name == "merge" ]]; then
+    for mergecase in "$mergecase_dir"/*.in; do
+      mergecase_name=$(basename "$mergecase" | cut -f1 -d".")
+      local mergeref=${mergeref_dir}/${mergecase_name}.out
+      ./test.out <"$mergecase" >&/tmp/output.txt
+      diff -w -B /tmp/output.txt "$mergeref"
       if [[ $? != 0 ]]; then
-        echo "Error: Output mismatch [$testcase_name]"
+        echo "Error: Output mismatch [$testcase_name/$mergecase_name]"
         full_score=0
         continue
       fi
-      echo "Pass $testcase_name"
       score=$((score + 5))
+      echo "Pass $testcase_name/$mergecase_name"
+    done
+  else
+    ./test.out >&/tmp/output.txt
+    diff -w -B /tmp/output.txt "$ref"
+    if [[ $? != 0 ]]; then
+      echo "Error: Output mismatch [$testcase_name]"
+      full_score=0
+      continue
     fi
+    echo "Pass $testcase_name"
+    score=$((score + 5))
+  fi
   # done
   rm -f "$testcase_dir"/*.tig.s
 

@@ -53,6 +53,7 @@ public:
   void AssginColor();
   void RewriteProgram(live::INodeListPtr);
 
+  live::INodePtr HeuristicSelect();
   void AddEdge(live::INodePtr u, live::INodePtr v);
   live::INodeListPtr Adjacent(live::INodePtr n);
   live::MoveList *NodeMoves(live::INodePtr n);

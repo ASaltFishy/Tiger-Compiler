@@ -77,6 +77,9 @@ public:
       }
     }
   }
+  void Del(Temp *oldTemp){
+    temp_list_.remove(oldTemp);
+  }
 
 private:
   std::list<Temp *> temp_list_;

@@ -127,24 +127,24 @@ void LiveGraphFactory::InterfGraph() {
     if (!fg::isMove(node)) {
       for (temp::Temp *def : node->NodeInfo()->Def()->GetList()) {
         for (temp::Temp *out : outRegs->GetList()) {
-          if (def != reg_manager->StackPointer() && out != reg_manager->StackPointer()) {
+          if (def!=out && def != reg_manager->StackPointer() && out != reg_manager->StackPointer()) {
             g->AddEdge(temp_node_map_->Look(def), temp_node_map_->Look(out));
             g->AddEdge(temp_node_map_->Look(out), temp_node_map_->Look(def));
           }
         }
       }
-    } 
+    }
     // move instruction
     else {
       for (temp::Temp *def : node->NodeInfo()->Def()->GetList()) {
         for (temp::Temp *out : Except(outRegs,node->NodeInfo()->Use())->GetList()) {
-          if (def != reg_manager->StackPointer() && out != reg_manager->StackPointer()) {
+          if (def!=out && def != reg_manager->StackPointer() && out != reg_manager->StackPointer()) {
             g->AddEdge(temp_node_map_->Look(def), temp_node_map_->Look(out));
             g->AddEdge(temp_node_map_->Look(out), temp_node_map_->Look(def));
           }
         }
         for(temp::Temp *use : node->NodeInfo()->Use()->GetList()){
-          if (def != reg_manager->StackPointer() && use != reg_manager->StackPointer()){
+          if (def!=use && def != reg_manager->StackPointer() && use != reg_manager->StackPointer()){
             if(!move_list->Contain(temp_node_map_->Look(use), temp_node_map_->Look(def))){
               move_list->Append(temp_node_map_->Look(use), temp_node_map_->Look(def));
             }

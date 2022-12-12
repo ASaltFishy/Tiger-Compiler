@@ -79,6 +79,9 @@ public:
   [[nodiscard]] const std::list<Instr *> &GetList() const {
     return instr_list_;
   }
+  [[nodiscard]]std::list<Instr *> *GetListPtr(){
+    return &instr_list_;
+  }
 
 private:
   std::list<Instr *> instr_list_;
