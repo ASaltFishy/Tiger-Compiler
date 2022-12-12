@@ -184,7 +184,7 @@ void RegAllocator::RegAlloc() {
 
 void RegAllocator::Build() {
   worklistMoves = live_graph_.moves;
-  printf("worklistmoves size: %ld\n", worklistMoves->GetList().size());
+  // printf("worklistmoves size: %ld\n", worklistMoves->GetList().size());
   for (std::pair<live::INodePtr, live::INodePtr> item :
        worklistMoves->GetList()) {
     live::INodePtr src = item.first;

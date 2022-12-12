@@ -229,8 +229,8 @@ test_lab6() {
 
   build tiger-compiler
   # rm -f "$testcase_dir"/*.tig.s
-  # for testcase in "$testcase_dir"/*.tig; do
-  testcase=${testcase_dir}/tree.tig
+  for testcase in "$testcase_dir"/*.tig; do
+  # testcase=${testcase_dir}/tree.tig
   testcase_name=$(basename "$testcase" | cut -f1 -d".")
   local ref=${ref_dir}/${testcase_name}.out
   local assem=$testcase.s
@@ -238,14 +238,18 @@ test_lab6() {
   ./tiger-compiler "$testcase" &>/dev/null
   gcc -Wl,--wrap,getchar -m64 "$assem" "$runtime_path" -o test.out &>/dev/null
   # ./tiger-compiler "$testcase" 
+  # echo "1"
   # gcc -Wl,--wrap,getchar -m64 "$assem" "$runtime_path" -o test.out
+  # echo "2"
   if [ ! -s test.out ]; then
+    # echo "2.5"
     echo "Error: Link error [$testcase_name]"
     full_score=0
     continue
   fi
 
   if [[ $testcase_name == "merge" ]]; then
+    # echo "2.6"
     for mergecase in "$mergecase_dir"/*.in; do
       mergecase_name=$(basename "$mergecase" | cut -f1 -d".")
       local mergeref=${mergeref_dir}/${mergecase_name}.out
@@ -260,7 +264,9 @@ test_lab6() {
       echo "Pass $testcase_name/$mergecase_name"
     done
   else
+    # echo "2.7"
     ./test.out >&/tmp/output.txt
+    # echo "3"
     diff -w -B /tmp/output.txt "$ref"
     if [[ $? != 0 ]]; then
       echo "Error: Output mismatch [$testcase_name]"
@@ -270,8 +276,8 @@ test_lab6() {
     echo "Pass $testcase_name"
     score=$((score + 5))
   fi
-  # done
-  rm -f "$testcase_dir"/*.tig.s
+  done
+  # rm -f "$testcase_dir"/*.tig.s
 
   if [[ $full_score == 0 ]]; then
     echo "${score_str}: ${score}"
