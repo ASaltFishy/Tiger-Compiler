@@ -72,6 +72,20 @@ void RegAllocator::init() {
   alias.clear();
 }
 
+bool isTempMove(assem::Instr *instr){
+  if(typeid(*instr) == typeid(assem::MoveInstr)){
+    std::string str = ((assem::MoveInstr *)instr)->assem_;
+    if(str.find("movq")!=std::string::npos && str.find("(")==std::string::npos)return true;
+    else return false;
+  }else if(typeid(*instr) == typeid(assem::OperInstr)){
+    std::string str = ((assem::OperInstr *)instr)->assem_;
+    if(str.find("movq")!=std::string::npos && str.find("(")==std::string::npos)return true;
+    else return false;
+  }else{
+    return false;
+  }
+}
+
 void RegAllocator::RegAlloc() {
 
   file = fopen("../debug.log", "w");
@@ -162,7 +176,7 @@ void RegAllocator::RegAlloc() {
       // eliminate the coalesced move
       assem::InstrList *remove_instr = new assem::InstrList();
       for (auto instr : il_.get()->GetInstrList()->GetList()) {
-        if (typeid(*instr) == typeid(assem::MoveInstr)) {
+        if (isTempMove(instr)) {
           if (!instr->Def()->GetList().empty() &&
               !instr->Use()->GetList().empty() &&
               colorMap->Look(instr->Def()->GetList().front()) ==
