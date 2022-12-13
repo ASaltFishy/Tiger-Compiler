@@ -137,12 +137,12 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     instr_list.Append(new assem::MoveInstr("movq `s0, `d0",
                                            new temp::TempList(x64RM->rax),
                                            new temp::TempList(left_reg)));
-    instr_list.Append(
-        new assem::OperInstr("imulq `s0", new temp::TempList({x64RM->rax,x64RM->rdx}),
-                             new temp::TempList({right_reg,x64RM->rax}), nullptr));
     instr_list.Append(new assem::MoveInstr(
         "cqto", new temp::TempList({x64RM->rdx}),
         new temp::TempList(x64RM->rax)));
+    instr_list.Append(
+        new assem::OperInstr("imulq `s0", new temp::TempList({x64RM->rax,x64RM->rdx}),
+                             new temp::TempList({right_reg,x64RM->rax}), nullptr));
     instr_list.Append(
         new assem::OperInstr("movq `s0, `d0", new temp::TempList(newReg),
                              new temp::TempList(x64RM->rax), nullptr));
