@@ -9,10 +9,10 @@
 namespace fg {
 
 using FNode = graph::Node<assem::Instr>;
-using FNodePtr = graph::Node<assem::Instr>*;
-using FNodeListPtr = graph::NodeList<assem::Instr>*;
+using FNodePtr = graph::Node<assem::Instr> *;
+using FNodeListPtr = graph::NodeList<assem::Instr> *;
 using FGraph = graph::Graph<assem::Instr>;
-using FGraphPtr = graph::Graph<assem::Instr>*;
+using FGraphPtr = graph::Graph<assem::Instr> *;
 
 class FlowGraphFactory {
 public:
@@ -27,6 +27,11 @@ private:
   FGraphPtr flowgraph_;
   std::unique_ptr<tab::Table<temp::Label, FNode>> label_map_;
 };
+
+bool isDirectJump(FNode *node);
+bool isLabel(FNode *node);
+bool isMove(FNode *node);
+bool isOper(FNode *node);
 
 } // namespace fg
 

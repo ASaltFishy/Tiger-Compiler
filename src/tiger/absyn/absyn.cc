@@ -10,8 +10,8 @@ inline void Indent(FILE *out, int d) {
 
 inline void PrintOper(FILE *out, absyn::Oper d) {
   static std::array<std::string_view, absyn::ABSYN_OPER_COUNT> str_oper = {
-      "AND",   "OR",       "PLUS",     "MINUS",  "TIMES",  "DIVIDE",
-      "EQUAL", "NOTEQUAL", "LESSTHAN", "LESSEQ", "GREAT",  "GREATEQ"};
+      "AND",   "OR",       "PLUS",     "MINUS",  "TIMES", "DIVIDE",
+      "EQUAL", "NOTEQUAL", "LESSTHAN", "LESSEQ", "GREAT", "GREATEQ"};
   fprintf(out, "%s", str_oper[d].data());
 }
 
@@ -404,6 +404,14 @@ type::FieldList *FieldList::MakeFieldList(env::TEnvPtr tenv,
     ty_field_list->Append(new type::Field(a_field->name_, ty));
   }
   return ty_field_list;
+}
+
+std::list<bool> FieldList::MakeEscapeList() const {
+  std::list<bool> retList;
+  for (Field *item : field_list_) {
+    retList.push_back(item->escape_);
+  }
+  return retList;
 }
 
 void ExpList::Print(FILE *out, int d) const {
