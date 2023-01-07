@@ -44,7 +44,7 @@ gradelab5:
 gradelab6:
 	bash scripts/grade.sh lab6
 
-gradelab7:transform
+gradelab7:
 	bash scripts/grade.sh lab7
 
 gradeall:transform

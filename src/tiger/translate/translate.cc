@@ -225,6 +225,7 @@ tr::ExpAndTy *SubscriptVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   tr::ExpAndTy *indexAddress =
       subscript_->Translate(venv, tenv, level, label, errormsg);
   type::Ty *retType = ((type::ArrayTy *)(arrayAddress->ty_))->ActualTy();
+
   tree::Exp *offsetExp =
       new tree::BinopExp(tree::MUL_OP, indexAddress->exp_->UnEx(),
                          new tree::ConstExp(reg_manager->WordSize()));
@@ -376,13 +377,13 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       stm = new tree::CjumpStm(tree::RelOp::NE_OP, leftExp, rightExp, trueLabel,
                                falseLabel);
       break;
-    case AND_OP:{
-      IfExp *changeToIf = new IfExp(pos_,left_,right_,new IntExp(pos_,0));
+    case AND_OP: {
+      IfExp *changeToIf = new IfExp(pos_, left_, right_, new IntExp(pos_, 0));
       return changeToIf->Translate(venv, tenv, level, label, errormsg);
       break;
     }
-    case OR_OP:{
-      IfExp *changeToIf = new IfExp(pos_,left_,new IntExp(pos_,1),right_);
+    case OR_OP: {
+      IfExp *changeToIf = new IfExp(pos_, left_, new IntExp(pos_, 1), right_);
       return changeToIf->Translate(venv, tenv, level, label, errormsg);
       break;
     }
@@ -403,14 +404,36 @@ tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   type::Ty *recordTy = tenv->Look(typ_);
   std::list<EField *> fieldList = fields_->GetList();
   tree::TempExp *r = new tree::TempExp(temp::TempFactory::NewTemp());
+
   // call malloc to allocate the spacce on heap ,generate the move stm
   tree::ExpList *args = new tree::ExpList(
-      {new tree::ConstExp(fieldList.size() * reg_manager->WordSize())});
+      {new tree::ConstExp((fieldList.size() + 1) * reg_manager->WordSize())});
   tree::Stm *setRe =
       new tree::MoveStm(r, frame::ExternalCall("alloc_record", args));
 
   // generate SEQ tree
   int count = 0;
+  // for GC: create record discription    format:|1|01000111...|
+  std::string *str = new std::string("1");
+  std::list<type::Field *> field_list =
+      ((type::RecordTy *)recordTy)->fields_->GetList();
+  for (auto f : field_list) {
+    // this field is a pointer
+    if (typeid(*(f->ty_)) == typeid(type::RecordTy) ||
+        typeid(*(f->ty_)) == typeid(type::ArrayTy)) {
+      str->append("1");
+    } else {
+      // not a pointer
+      str->append("0");
+    }
+  }
+  StringExp *record_description = new StringExp(pos_, str);
+  tr::ExpAndTy *strResult =
+      record_description->Translate(venv, tenv, level, label, errormsg);
+  setRe = new tree::SeqStm(
+      setRe, new tree::MoveStm(mem_gen(r, count), strResult->exp_->UnEx()));
+  count++;
+  // all of the initial offset will increase
   for (EField *item : fieldList) {
     tr::ExpAndTy *tempTy =
         item->exp_->Translate(venv, tenv, level, label, errormsg);
@@ -418,7 +441,8 @@ tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
         setRe, new tree::MoveStm(mem_gen(r, count), tempTy->exp_->UnEx()));
     count++;
   }
-  tree::Exp *retExp = new tree::EseqExp(setRe, r);
+  tree::Exp *retExp = new tree::EseqExp(
+      setRe, new tree::BinopExp(tree::PLUS_OP, r, new tree::ConstExp(reg_manager->WordSize())));
   return new tr::ExpAndTy(new tr::ExExp(retExp), recordTy);
 }
 
@@ -654,10 +678,29 @@ tr::ExpAndTy *ArrayExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       size_->Translate(venv, tenv, level, label, errormsg);
   tr::ExpAndTy *check_init =
       init_->Translate(venv, tenv, level, label, errormsg);
-  tree::ExpList *args =
-      new tree::ExpList({check_size->exp_->UnEx(), check_init->exp_->UnEx()});
+
+  // for GC: create record discription    format:|0|0or1|
+  std::string *str = new std::string("0");
+  // this array is of record
+  if (typeid(*(check_init->ty_)) == typeid(type::RecordTy) ||
+      typeid(*(check_init->ty_)) == typeid(type::ArrayTy)) {
+    str->append("1");
+  } else {
+    // not a list of pointer
+    str->append("0");
+  }
+  StringExp *record_description = new StringExp(pos_, str);
+  tr::ExpAndTy *strResult =
+      record_description->Translate(venv, tenv, level, label, errormsg);
+  tree::ExpList *args = new tree::ExpList(
+      {new tree::BinopExp(tree::PLUS_OP, check_size->exp_->UnEx(),
+                          new tree::ConstExp(1)),
+       check_init->exp_->UnEx(), strResult->exp_->UnEx()});
   tr::Exp *retExp = new tr::ExExp(frame::ExternalCall("init_array", args));
-  return new tr::ExpAndTy(retExp, check_init->ty_);
+  tr::Exp *actualBegin = new tr::ExExp(
+      new tree::BinopExp(tree::PLUS_OP, retExp->UnEx(),
+                         new tree::ConstExp(reg_manager->WordSize())));
+  return new tr::ExpAndTy(actualBegin, check_init->ty_);
 }
 
 tr::ExpAndTy *VoidExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
@@ -753,7 +796,7 @@ tr::Exp *TypeDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   }
   // second pass (there may forward definition)
   for (NameAndTy *item : list) {
-    tenv->Set(item->name_,item->ty_->Translate(tenv, errormsg));
+    tenv->Set(item->name_, item->ty_->Translate(tenv, errormsg));
   }
   return new tr::ExExp(new tree::ConstExp(0));
 }

@@ -41,7 +41,7 @@ EXTERNC uint64_t MaxFree() {
     return tiger_heap->MaxFree();
 }
 
-EXTERNC long *init_array(int size, long init) {
+EXTERNC long *init_array(int size, long init, long descriptor) {
   int i;
   uint64_t allocate_size = size * sizeof(long);
   long *a = (long *)tiger_heap->Allocate(allocate_size);
@@ -49,7 +49,8 @@ EXTERNC long *init_array(int size, long init) {
     tiger_heap->GC();
     a = (long*)tiger_heap->Allocate(allocate_size);
   }
-  for (i = 0; i < size; i++) a[i] = init;
+  a[0] = descriptor;
+  for (i = 1; i < size; i++) a[i] = init;
   return a;
 }
 

@@ -7,10 +7,12 @@ namespace frame {
 class InFrameAccess : public Access {
 public:
   int offset;
+  bool isPointer;
   explicit InFrameAccess(int offset) : offset(offset) {}
   /* TODO: Put your lab5 code here */
   tree::Exp *ToExp(tree::Exp *framePtr) override;
   int getOffset() override;
+  bool isPinter();
 };
 tree::Exp *InFrameAccess::ToExp(tree::Exp *framePtr) {
   return new tree::MemExp(
@@ -18,6 +20,9 @@ tree::Exp *InFrameAccess::ToExp(tree::Exp *framePtr) {
 }
 int InFrameAccess::getOffset(){
   return offset;
+}
+bool InFrameAccess::isPinter(){
+  return isPointer;
 }
 
 class InRegAccess : public Access {
