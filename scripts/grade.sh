@@ -268,7 +268,7 @@ test_lab6() {
     score=$((score + 5))
   fi
   done
-  rm -f "$testcase_dir"/*.tig.s
+  # rm -f "$testcase_dir"/*.tig.s
 
   if [[ $full_score == 0 ]]; then
     echo "${score_str}: ${score}"

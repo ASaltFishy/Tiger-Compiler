@@ -53,7 +53,6 @@ public:
 
   [[nodiscard]] virtual temp::TempList *intialInterfere() = 0;
 
-
   /**
    * Get word size
    */
@@ -77,8 +76,10 @@ public:
   virtual tree::Exp *ToExp(tree::Exp *framePtr) = 0;
   virtual ~Access() = default;
 
-  //for debug
+  // for debug
   virtual int getOffset() = 0;
+  virtual void setPointer() = 0;
+  virtual bool isPointer() = 0;
 };
 
 class Frame {
@@ -94,7 +95,8 @@ public:
   virtual int getFrameSize() = 0;
   virtual Access *getSLAccess() = 0;
   virtual Access *AllocLocal(bool escape) = 0;
-  virtual int ExpandFrame(int addWord) =0;
+  virtual int ExpandFrame(int addWord) = 0;
+  virtual std::list<long> getPointerList() = 0;
   [[nodiscard]] static Frame *newFrame(temp::Label *name,
                                        std::list<bool> formals);
 };
@@ -107,10 +109,7 @@ class Frag {
 public:
   virtual ~Frag() = default;
 
-  enum OutputPhase {
-    Proc,
-    String,
-  };
+  enum OutputPhase { Proc, String, PtrMap };
 
   /**
    *Generate assembly for main program
@@ -118,6 +117,28 @@ public:
    */
   virtual void OutputAssem(FILE *out, OutputPhase phase,
                            bool need_ra) const = 0;
+  virtual Frag *getPtrMap(temp::Label *function) = 0;
+};
+
+class PtrMapFrag : public Frag {
+public:
+  temp::Label *function_;
+  temp::Label *label_;
+  // temp::Label *prev_;
+  int frame_size_;
+  std::list<long> pointers_;
+
+  PtrMapFrag(temp::Label *function,temp::Label *label)
+      : function_(function), label_(label) {}
+
+  void OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const override;
+  Frag *getPtrMap(temp::Label *function) override{
+    if(function_== function){
+      return this;
+    }else{
+      return nullptr;
+    }
+  }
 };
 
 class StringFrag : public Frag {
@@ -129,6 +150,7 @@ public:
       : label_(label), str_(std::move(str)) {}
 
   void OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const override;
+  Frag *getPtrMap(temp::Label *function) override{ return nullptr;}
 };
 
 class ProcFrag : public Frag {
@@ -139,6 +161,7 @@ public:
   ProcFrag(tree::Stm *body, Frame *frame) : body_(body), frame_(frame) {}
 
   void OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const override;
+  Frag *getPtrMap(temp::Label *function) override{ return nullptr;}
 };
 
 class Frags {
@@ -146,6 +169,15 @@ public:
   Frags() = default;
   void PushBack(Frag *frag) { frags_.emplace_back(frag); }
   const std::list<Frag *> &GetList() { return frags_; }
+  Frag *getPtrMap(temp::Label *function){
+    for(Frag *f : frags_){
+      Frag *temp = f->getPtrMap(function);
+      if(temp!=nullptr){
+        return temp;
+      }
+    }
+    return nullptr;
+  }
 
 private:
   std::list<Frag *> frags_;
@@ -159,6 +191,5 @@ assem::Proc *ProcEntryExit3(frame::Frame *frame, assem::InstrList *body);
 tree::Exp *ExternalCall(std::string s, tree::ExpList *args);
 
 } // namespace frame
-
 
 #endif

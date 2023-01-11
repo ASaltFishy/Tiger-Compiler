@@ -10,6 +10,7 @@ const std::string GC_ROOTS = "GLOBAL_GC_ROOTS";
 
 class Roots {
   // Todo(lab7): define some member and methods here to keep track of gc roots;
+  
 };
 
 }

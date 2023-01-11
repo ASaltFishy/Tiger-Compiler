@@ -19,7 +19,15 @@ void AssemGen::GenAssem(bool need_ra) {
 
   // Output string
   phase = frame::Frag::String;
-  fprintf(out_, ".section .rodata\n");
+  fprintf(out_, "\n.section .rodata\n");
+  for (auto &&frag : frags->GetList())
+    frag->OutputAssem(out_, phase, need_ra);
+
+  // Output pointer map
+  phase = frame::Frag::PtrMap;
+  fprintf(out_, "\n.global GLOBAL_GC_ROOTS\n");
+  fprintf(out_, ".data\n");
+  fprintf(out_, "GLOBAL_GC_ROOTS:\n");
   for (auto &&frag : frags->GetList())
     frag->OutputAssem(out_, phase, need_ra);
 }
@@ -63,7 +71,8 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
     traces = canon.TransferTraces();
   }
 
-  temp::Map *color = temp::Map::LayerMap(reg_manager->temp_map_, temp::Map::Name());
+  temp::Map *color =
+      temp::Map::LayerMap(reg_manager->temp_map_, temp::Map::Name());
   {
     // Lab 5: code generation
     TigerLog("-------====Code generate=====-----\n");
@@ -74,7 +83,7 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
   }
 
   assem::InstrList *il = assem_instr.get()->GetInstrList();
-  
+
   if (need_ra) {
     // Lab 6: register allocation
     TigerLog("----====Register allocate====-----\n");
@@ -86,11 +95,11 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
   }
 
   TigerLog("-------====Output assembly for %s=====-----\n",
-          //  frame_->name_->Name().data());
-          frame_->GetLabel().data());
+           //  frame_->name_->Name().data());
+           frame_->GetLabel().data());
 
   assem::Proc *proc = frame::ProcEntryExit3(frame_, il);
-  
+
   std::string proc_name = frame_->GetLabel();
 
   fprintf(out, ".globl %s\n", proc_name.data());
@@ -127,5 +136,16 @@ void StringFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
     }
   }
   fprintf(out, "\"\n");
+}
+
+void PtrMapFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
+  if (phase != PtrMap)
+    return;
+  fprintf(out, "%s:\n", label_->Name().data());
+  // fprintf(out, ".quad %s\n", prev_->Name().data());
+  fprintf(out, ".quad %d\n", frame_size_);
+  for(long data : pointers_){
+    fprintf(out, ".quad %ld\n", data);
+  }
 }
 } // namespace frame

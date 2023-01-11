@@ -25,17 +25,7 @@ Level *Level::NewLevel(temp::Label *name, std::list<bool> escape,
   return new Level(frame::Frame::newFrame(name, escape), parent);
 }
 
-temp::Temp *Level::getFramePointer() {
-  return reg_manager->FramePointer();
-  // temp::Temp *rsp = reg_manager->StackPointer();
-  // int frameSize = frame_->getFrameSize();
-  // tree::BinopExp *address =
-  //     new tree::BinopExp(tree::BinOp::PLUS_OP, new tree::TempExp(rsp),
-  //                        new tree::ConstExp(frameSize));
-  // return new tree::MemExp(address);
-
-  // just return virtual frame pointer
-}
+temp::Temp *Level::getFramePointer() { return reg_manager->FramePointer(); }
 
 class Cx {
 public:
@@ -153,7 +143,8 @@ void ProgTr::Translate() {
 } // namespace tr
 
 namespace absyn {
-/* tool fuction */
+
+/********** Tool Function **********/
 tree::MemExp *mem_gen(tree::Exp *exp, int wordOffset) {
   return new tree::MemExp(new tree::BinopExp(
       tree::PLUS_OP, exp,
@@ -172,6 +163,36 @@ tree::Exp *findBySL(tr::Level *currentLevel, tr::Level *targetLevel) {
   return static_link;
 }
 
+/********** GC Protocol **********/
+
+bool IsPointer(type::Ty *ty_) {
+  return typeid(*ty_) == typeid(type::RecordTy) ||
+         typeid(*ty_) == typeid(type::ArrayTy);
+}
+
+/* for GC: create record discription
+ * format: |1|01000111...|
+ * LableName: "$typeName$_DESCRIPTOR"
+ */
+void emitRecordRecordTypeDescriptor(type::RecordTy *recordTy,
+                                    sym::Symbol *name) {
+  std::string pointMAP, recordNAME;
+  recordNAME = name->Name() + "_descriptor";
+  std::list<type::Field *> field_list = recordTy->fields_->GetList();
+  for (auto field : field_list) {
+    if (IsPointer(field->ty_))
+      pointMAP += "1";
+    else
+      pointMAP += "0";
+  }
+
+  temp::Label *str_lable = temp::LabelFactory::NamedLabel(recordNAME);
+  frame::StringFrag *str_frag = new frame::StringFrag(str_lable, pointMAP);
+  frags->PushBack(str_frag);
+}
+
+/********** END GC Protocol **********/
+
 tr::ExpAndTy *AbsynTree::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
                                    err::ErrorMsg *errormsg) const {
@@ -181,13 +202,19 @@ tr::ExpAndTy *AbsynTree::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
-                                   err::ErrorMsg *errormsg) const {
+                                   err::ErrorMsg *errormsg,
+                                   bool isPointer) const {
   /* TODO: Put your lab5 code here */
   env::EnvEntry *tempEntry = venv->Look(sym_);
   env::VarEntry *entry = (env::VarEntry *)tempEntry;
   tr::Access *targetAccess = entry->access_;
   tr::Level *targetLevel = targetAccess->level_, *tempLevel = level;
   tr::Exp *retExp;
+
+  // for GC: set aceess if it is a pointer
+  if (isPointer || IsPointer(entry->ty_)) {
+    targetAccess->access_->setPointer();
+  }
 
   // find the SL of target access
   tree::Exp *static_link = findBySL(level, targetLevel);
@@ -197,10 +224,11 @@ tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 tr::ExpAndTy *FieldVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                   tr::Level *level, temp::Label *label,
-                                  err::ErrorMsg *errormsg) const {
+                                  err::ErrorMsg *errormsg,
+                                  bool isPointer) const {
   /* TODO: Put your lab5 code here */
   tr::ExpAndTy *fieldAddress =
-      var_->Translate(venv, tenv, level, label, errormsg);
+      var_->Translate(venv, tenv, level, label, errormsg, true);
   std::list<type::Field *> fieldList =
       ((type::RecordTy *)(fieldAddress->ty_))->fields_->GetList();
   int offset = 0;
@@ -218,10 +246,11 @@ tr::ExpAndTy *FieldVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 tr::ExpAndTy *SubscriptVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                       tr::Level *level, temp::Label *label,
-                                      err::ErrorMsg *errormsg) const {
+                                      err::ErrorMsg *errormsg,
+                                      bool isPointer) const {
   /* TODO: Put your lab5 code here */
   tr::ExpAndTy *arrayAddress =
-      var_->Translate(venv, tenv, level, label, errormsg);
+      var_->Translate(venv, tenv, level, label, errormsg, true);
   tr::ExpAndTy *indexAddress =
       subscript_->Translate(venv, tenv, level, label, errormsg);
   type::Ty *retType = ((type::ArrayTy *)(arrayAddress->ty_))->ActualTy();
@@ -274,7 +303,7 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   env::FunEntry *entry = (env::FunEntry *)(venv->Look(func_));
   temp::Label *funcLabel = temp::LabelFactory::NamedLabel(func_->Name());
   tree::NameExp *name = new tree::NameExp(funcLabel);
-  tr::ExExp *retExp;
+  tree::Exp *retExp;
 
   tree::ExpList *argList = new tree::ExpList();
   // arglist in callExp which is generated from parsing don't contain static
@@ -285,17 +314,29 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   }
 
   if (!entry->level_->parent_) {
-    retExp = new tr::ExExp(frame::ExternalCall(func_->Name(), argList));
+    retExp = frame::ExternalCall(func_->Name(), argList);
   } else {
     // add sl into arguement list
     // target level is parent of the function
     tree::Exp *static_link = findBySL(level, entry->level_->parent_);
     argList->Insert(static_link);
-    retExp = new tr::ExExp(new tree::CallExp(name, argList));
+    retExp = new tree::CallExp(name, argList);
   }
 
+  // for GC: add pointer map
+  temp::Label *retLabel = temp::LabelFactory::NewLabel();
+  retExp = new tree::EseqExp(new tree::LabelStm(retLabel), retExp);
+  // add pointers in frame to frag now, pointer in reg need to be considered in
+  // reg alloc
+  temp::Label *ptrmapLabel =
+      temp::LabelFactory::NamedLabel(retLabel->Name() + "_ptrmap");
+  frame::PtrMapFrag *ptrmap = new frame::PtrMapFrag(funcLabel, ptrmapLabel);
+  std::list<long> temp = level->frame_->getPointerList();
+  ptrmap->pointers_.assign(temp.begin(), temp.end());
+  frags->PushBack(ptrmap);
+
   type::Ty *retType = entry->result_;
-  return new tr::ExpAndTy(retExp, retType);
+  return new tr::ExpAndTy(new tr::ExExp(retExp), retType);
 }
 
 tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
@@ -404,36 +445,14 @@ tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   type::Ty *recordTy = tenv->Look(typ_);
   std::list<EField *> fieldList = fields_->GetList();
   tree::TempExp *r = new tree::TempExp(temp::TempFactory::NewTemp());
-
   // call malloc to allocate the spacce on heap ,generate the move stm
-  tree::ExpList *args = new tree::ExpList(
-      {new tree::ConstExp((fieldList.size() + 1) * reg_manager->WordSize())});
+  tree::ExpList *args = new tree::ExpList({new tree::NameExp(
+      temp::LabelFactory::NamedLabel(typ_->Name() + "_descriptor"))});
   tree::Stm *setRe =
       new tree::MoveStm(r, frame::ExternalCall("alloc_record", args));
 
   // generate SEQ tree
   int count = 0;
-  // for GC: create record discription    format:|1|01000111...|
-  std::string *str = new std::string("1");
-  std::list<type::Field *> field_list =
-      ((type::RecordTy *)recordTy)->fields_->GetList();
-  for (auto f : field_list) {
-    // this field is a pointer
-    if (typeid(*(f->ty_)) == typeid(type::RecordTy) ||
-        typeid(*(f->ty_)) == typeid(type::ArrayTy)) {
-      str->append("1");
-    } else {
-      // not a pointer
-      str->append("0");
-    }
-  }
-  StringExp *record_description = new StringExp(pos_, str);
-  tr::ExpAndTy *strResult =
-      record_description->Translate(venv, tenv, level, label, errormsg);
-  setRe = new tree::SeqStm(
-      setRe, new tree::MoveStm(mem_gen(r, count), strResult->exp_->UnEx()));
-  count++;
-  // all of the initial offset will increase
   for (EField *item : fieldList) {
     tr::ExpAndTy *tempTy =
         item->exp_->Translate(venv, tenv, level, label, errormsg);
@@ -441,8 +460,7 @@ tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
         setRe, new tree::MoveStm(mem_gen(r, count), tempTy->exp_->UnEx()));
     count++;
   }
-  tree::Exp *retExp = new tree::EseqExp(
-      setRe, new tree::BinopExp(tree::PLUS_OP, r, new tree::ConstExp(reg_manager->WordSize())));
+  tree::Exp *retExp = new tree::EseqExp(setRe, r);
   return new tr::ExpAndTy(new tr::ExExp(retExp), recordTy);
 }
 
@@ -465,8 +483,17 @@ tr::ExpAndTy *AssignExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
                                    err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
-  tr::ExpAndTy *var = var_->Translate(venv, tenv, level, label, errormsg);
   tr::ExpAndTy *exp = exp_->Translate(venv, tenv, level, label, errormsg);
+
+  // for GC
+  bool isPointer = false;
+  if (typeid(*(exp->ty_)) == typeid(type::RecordTy) ||
+      typeid(*(exp->ty_)) == typeid(type::ArrayTy)) {
+    isPointer = true;
+  }
+  tr::ExpAndTy *var =
+      var_->Translate(venv, tenv, level, label, errormsg, isPointer);
+
   tree::MoveStm *retExp =
       new tree::MoveStm(var->exp_->UnEx(), exp->exp_->UnEx());
   return new tr::ExpAndTy(new tr::NxExp(retExp), var->ty_);
@@ -679,28 +706,11 @@ tr::ExpAndTy *ArrayExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   tr::ExpAndTy *check_init =
       init_->Translate(venv, tenv, level, label, errormsg);
 
-  // for GC: create record discription    format:|0|0or1|
-  std::string *str = new std::string("0");
-  // this array is of record
-  if (typeid(*(check_init->ty_)) == typeid(type::RecordTy) ||
-      typeid(*(check_init->ty_)) == typeid(type::ArrayTy)) {
-    str->append("1");
-  } else {
-    // not a list of pointer
-    str->append("0");
-  }
-  StringExp *record_description = new StringExp(pos_, str);
-  tr::ExpAndTy *strResult =
-      record_description->Translate(venv, tenv, level, label, errormsg);
-  tree::ExpList *args = new tree::ExpList(
-      {new tree::BinopExp(tree::PLUS_OP, check_size->exp_->UnEx(),
-                          new tree::ConstExp(1)),
-       check_init->exp_->UnEx(), strResult->exp_->UnEx()});
+  // for GC: no need to create record discription    format:|0|size|
+  tree::ExpList *args =
+      new tree::ExpList({check_size->exp_->UnEx(), check_init->exp_->UnEx()});
   tr::Exp *retExp = new tr::ExExp(frame::ExternalCall("init_array", args));
-  tr::Exp *actualBegin = new tr::ExExp(
-      new tree::BinopExp(tree::PLUS_OP, retExp->UnEx(),
-                         new tree::ConstExp(reg_manager->WordSize())));
-  return new tr::ExpAndTy(actualBegin, check_init->ty_);
+  return new tr::ExpAndTy(retExp, check_init->ty_);
 }
 
 tr::ExpAndTy *VoidExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
@@ -779,6 +789,12 @@ tr::Exp *VarDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       init_->Translate(venv, tenv, level, label, errormsg);
   tr::Access *localVar = tr::Access::AllocLocal(level, escape_);
   venv->Enter(var_, new env::VarEntry(localVar, check_init->ty_));
+
+  // for GC: figure out if local is a pointer
+  if(IsPointer(check_init->ty_)){
+    localVar->access_->setPointer();
+  }
+
   tree::Stm *init_stm = new tree::MoveStm(
       localVar->access_->ToExp(new tree::TempExp(reg_manager->FramePointer())),
       check_init->exp_->UnEx());
@@ -796,7 +812,12 @@ tr::Exp *TypeDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   }
   // second pass (there may forward definition)
   for (NameAndTy *item : list) {
-    tenv->Set(item->name_, item->ty_->Translate(tenv, errormsg));
+    type::Ty *type = item->ty_->Translate(tenv, errormsg);
+    tenv->Set(item->name_, type);
+    // for GC：add record descriptor into stringFrag
+    if (typeid(*(type->ActualTy())) == typeid(type::RecordTy)) {
+      emitRecordRecordTypeDescriptor((type::RecordTy *)type, item->name_);
+    }
   }
   return new tr::ExExp(new tree::ConstExp(0));
 }

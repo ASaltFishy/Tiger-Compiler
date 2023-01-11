@@ -25,17 +25,19 @@ class Temp {
 
 public:
   [[nodiscard]] int Int() const;
+  void setPointer(){pointer=true;}
+  bool isPointer(){return isPointer;}
 
 private:
   int num_;
   // for GC
-  bool isPointer;
-  explicit Temp(int num,bool isPointer) : num_(num),isPointer(isPointer) {}
+  bool pointer;
+  explicit Temp(int num,bool Pointer) : num_(num),pointer(Pointer) {}
 };
 
 class TempFactory {
 public:
-  static Temp *NewTemp(bool isPointer = false);
+  static Temp *NewTemp(bool Pointer = false);
 
 private:
   int temp_id_ = 100;

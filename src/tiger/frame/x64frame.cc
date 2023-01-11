@@ -7,12 +7,13 @@ namespace frame {
 class InFrameAccess : public Access {
 public:
   int offset;
-  bool isPointer;
+  bool pointer = false;
   explicit InFrameAccess(int offset) : offset(offset) {}
   /* TODO: Put your lab5 code here */
   tree::Exp *ToExp(tree::Exp *framePtr) override;
   int getOffset() override;
-  bool isPinter();
+  void setPointer() override;
+  bool isPointer() override;
 };
 tree::Exp *InFrameAccess::ToExp(tree::Exp *framePtr) {
   return new tree::MemExp(
@@ -21,8 +22,11 @@ tree::Exp *InFrameAccess::ToExp(tree::Exp *framePtr) {
 int InFrameAccess::getOffset(){
   return offset;
 }
-bool InFrameAccess::isPinter(){
-  return isPointer;
+bool InFrameAccess::isPointer(){
+  return pointer;
+}
+void InFrameAccess::setPointer(){
+  pointer = true;
 }
 
 class InRegAccess : public Access {
@@ -33,6 +37,8 @@ public:
   /* TODO: Put your lab5 code here */
   tree::Exp *ToExp(tree::Exp *framePtr) override;
   int getOffset() override;
+  bool isPointer() override {return reg->isPointer();}
+  void setPointer() override {reg->setPointer();}
 };
 tree::Exp *InRegAccess::ToExp(tree::Exp *framePtr) {
   return new tree::TempExp(reg);
@@ -52,6 +58,7 @@ public:
   Access *getSLAccess() override;
   int getFrameSize() override;
   int ExpandFrame(int addWord) override;
+  std::list<long> getPointerList() override;
 };
 
 /* TODO: Put your lab5 code here */
@@ -62,7 +69,20 @@ X64Frame::X64Frame(temp::Label *name, std::list<bool> formals) : Frame(name) {
   }
 }
 
+std::list<long> X64Frame::getPointerList(){
+  std::list<long> list;
+  for(Access *acc : formals_){
+    if(typeid(*acc)==typeid(InFrameAccess) && acc->isPointer()){
+      list.push_back(acc->getOffset());
+    }
+  }
+  return list;
+}
+
 int X64Frame::ExpandFrame(int addWord){
+  for(int i=0;i<addWord;i++){
+    AllocLocal(true);
+  }
   count_+=addWord;
   return count_ * reg_manager->WordSize();
 }

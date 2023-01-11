@@ -501,12 +501,6 @@ void RegAllocator::AssginColor() {
       live::INodePtr alias = GetAlias(w);
       if (coloredNodes->Contain(alias) || precolored->Contain(alias)) {
         okColors.erase(color[alias]);
-        // for (auto iter = okColors.begin(); iter != okColors.end(); iter++) {
-        //   if (*iter == color[alias]) {
-        //     okColors.erase(iter);
-        //     break;
-        //   }
-        // }
       }
     }
     if (okColors.empty()) {
@@ -541,7 +535,12 @@ void RegAllocator::RewriteProgram(live::INodeListPtr spilledList) {
       if ((*instr)->Def()->Contain(node->NodeInfo())) {
         if (!create) {
           newTemp = temp::TempFactory::NewTemp();
-          offset = frame_->ExpandFrame(1);
+          frame::Access *acc = frame_->AllocLocal(true);
+          offset = acc->getOffset();
+          // for GC: if a pilled temp is a pointer, the access in frame should be set as a pointer
+          if(node->NodeInfo()->isPointer()){
+            acc->setPointer();
+          }
           create = true;
           fprintf(file, "replace %d with %d, offset: %d\n",
                   node->NodeInfo()->Int(), newTemp->Int(), offset);
@@ -560,7 +559,12 @@ void RegAllocator::RewriteProgram(live::INodeListPtr spilledList) {
       if ((*instr)->Use()->Contain(node->NodeInfo())) {
         if (!create) {
           newTemp = temp::TempFactory::NewTemp();
-          offset = frame_->ExpandFrame(1);
+          frame::Access *acc = frame_->AllocLocal(true);
+          offset = acc->getOffset();
+          // for GC: if a pilled temp is a pointer, the access in frame should be set as a pointer
+          if(node->NodeInfo()->isPointer()){
+            acc->setPointer();
+          }
           create = true;
           fprintf(file, "replace %d with %d, offset: %d\n",
                   node->NodeInfo()->Int(), newTemp->Int(), offset);
