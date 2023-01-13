@@ -3,6 +3,7 @@
 #include <cstdio>
 
 #include "tiger/output/logger.h"
+#include "tiger/runtime/gc/roots/roots.h"
 
 extern frame::RegManager *reg_manager;
 extern frame::Frags *frags;
@@ -30,6 +31,8 @@ void AssemGen::GenAssem(bool need_ra) {
   fprintf(out_, "GLOBAL_GC_ROOTS:\n");
   for (auto &&frag : frags->GetList())
     frag->OutputAssem(out_, phase, need_ra);
+  // -2表示pointer map结束
+  fprintf(out_, ".quad -2\n");
 }
 
 } // namespace output
@@ -92,10 +95,13 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
     allocation = reg_allocator.TransferResult();
     il = allocation->il_;
     color = temp::Map::LayerMap(reg_manager->temp_map_, allocation->coloring_);
+
+    // GC: construct pointer map
+    gc::Roots root(il, frame_, reg_allocator.getFlowGraph(), color, frags);
+    root.constructPtrmap();
   }
 
   TigerLog("-------====Output assembly for %s=====-----\n",
-           //  frame_->name_->Name().data());
            frame_->GetLabel().data());
 
   assem::Proc *proc = frame::ProcEntryExit3(frame_, il);
@@ -141,11 +147,17 @@ void StringFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
 void PtrMapFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
   if (phase != PtrMap)
     return;
-  fprintf(out, "%s:\n", label_->Name().data());
+  std::string label = index_->Name();
+  fprintf(out, ".quad %s\n", label.data());
   // fprintf(out, ".quad %s\n", prev_->Name().data());
-  fprintf(out, ".quad %d\n", frame_size_);
-  for(long data : pointers_){
+  fprintf(out, ".quad %s\n", frame_size_.data());
+  fprintf(out, ".quad %ld\n", isMain);
+  for (long data : pointers_) {
     fprintf(out, ".quad %ld\n", data);
   }
+  // end label
+  long temp = -1;
+  fprintf(out, ".quad %ld\n", temp);
+  fprintf(out, "\n");
 }
 } // namespace frame

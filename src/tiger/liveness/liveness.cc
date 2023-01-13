@@ -44,7 +44,7 @@ MoveList *MoveList::Intersect(MoveList *list) {
   return res;
 }
 
-// file the in set and out set of every instruction
+// fill the in set and out set of every instruction
 void LiveGraphFactory::LiveMap() {
   /* TODO: Put your lab6 code here */
   for (fg::FNode *node : flowgraph_->Nodes()->GetList()) {

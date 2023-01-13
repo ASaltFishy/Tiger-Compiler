@@ -34,6 +34,7 @@ public:
   RegAllocator(frame::Frame *frame, std::unique_ptr<cg::AssemInstr> il);
   void RegAlloc();
   std::unique_ptr<ra::Result> TransferResult();
+  fg::FGraphPtr getFlowGraph(){return flow_graph_;}
 
 private:
   std::unique_ptr<cg::AssemInstr> il_;

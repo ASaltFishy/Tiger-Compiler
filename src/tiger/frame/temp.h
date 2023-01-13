@@ -24,15 +24,16 @@ class Temp {
   friend class TempFactory;
 
 public:
+  // for GC
+  bool pointer;
   [[nodiscard]] int Int() const;
-  void setPointer(){pointer=true;}
-  bool isPointer(){return isPointer;}
+  void setPointer() { pointer = true; }
+  void discardPointer() { pointer = false; }
+  bool isPointer() { return pointer; }
 
 private:
   int num_;
-  // for GC
-  bool pointer;
-  explicit Temp(int num,bool Pointer) : num_(num),pointer(Pointer) {}
+  explicit Temp(int num, bool Pointer) : num_(num), pointer(Pointer) {}
 };
 
 class TempFactory {
@@ -71,19 +72,18 @@ public:
   void Append(Temp *t) { temp_list_.push_back(t); }
   [[nodiscard]] Temp *NthTemp(int i) const;
   [[nodiscard]] const std::list<Temp *> &GetList() const { return temp_list_; }
-  [[nodiscard]] bool Contain(Temp* temp) {
-    return std::find(temp_list_.begin(), temp_list_.end(), temp) != temp_list_.end();
+  [[nodiscard]] bool Contain(Temp *temp) {
+    return std::find(temp_list_.begin(), temp_list_.end(), temp) !=
+           temp_list_.end();
   };
-  void Replace(Temp *oldTemp, Temp *newTemp){
-    for(auto item = temp_list_.begin();item!=temp_list_.end();item++){
-      if((*item)==oldTemp){
+  void Replace(Temp *oldTemp, Temp *newTemp) {
+    for (auto item = temp_list_.begin(); item != temp_list_.end(); item++) {
+      if ((*item) == oldTemp) {
         (*item) = newTemp;
       }
     }
   }
-  void Del(Temp *oldTemp){
-    temp_list_.remove(oldTemp);
-  }
+  void Del(Temp *oldTemp) { temp_list_.remove(oldTemp); }
 
 private:
   std::list<Temp *> temp_list_;

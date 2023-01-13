@@ -59,6 +59,10 @@ public:
   void Liveness();
   LiveGraph GetLiveGraph() { return live_graph_; }
   tab::Table<temp::Temp, INode> *GetTempNodeMap() { return temp_node_map_; }
+  graph::Table<assem::Instr, temp::TempList> *GetIn(){return in_.get();}
+  graph::Table<assem::Instr, temp::TempList> *GetOut(){out_.get();}
+  void LiveMap();
+  void InterfGraph();
 
 private:
   fg::FGraphPtr flowgraph_;
@@ -67,9 +71,6 @@ private:
   std::unique_ptr<graph::Table<assem::Instr, temp::TempList>> in_;
   std::unique_ptr<graph::Table<assem::Instr, temp::TempList>> out_;
   tab::Table<temp::Temp, INode> *temp_node_map_;
-
-  void LiveMap();
-  void InterfGraph();
 };
 
 temp::TempList *Union(temp::TempList *a, temp::TempList *b);

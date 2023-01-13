@@ -14,6 +14,7 @@ public:
   int getOffset() override;
   void setPointer() override;
   bool isPointer() override;
+  void discardPointer() override;
 };
 tree::Exp *InFrameAccess::ToExp(tree::Exp *framePtr) {
   return new tree::MemExp(
@@ -28,6 +29,9 @@ bool InFrameAccess::isPointer(){
 void InFrameAccess::setPointer(){
   pointer = true;
 }
+void InFrameAccess::discardPointer(){
+  pointer = false;
+}
 
 class InRegAccess : public Access {
 public:
@@ -39,6 +43,7 @@ public:
   int getOffset() override;
   bool isPointer() override {return reg->isPointer();}
   void setPointer() override {reg->setPointer();}
+  void discardPointer() override {reg->discardPointer();}
 };
 tree::Exp *InRegAccess::ToExp(tree::Exp *framePtr) {
   return new tree::TempExp(reg);
@@ -80,9 +85,6 @@ std::list<long> X64Frame::getPointerList(){
 }
 
 int X64Frame::ExpandFrame(int addWord){
-  for(int i=0;i<addWord;i++){
-    AllocLocal(true);
-  }
   count_+=addWord;
   return count_ * reg_manager->WordSize();
 }

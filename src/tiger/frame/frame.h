@@ -80,6 +80,7 @@ public:
   virtual int getOffset() = 0;
   virtual void setPointer() = 0;
   virtual bool isPointer() = 0;
+  virtual void discardPointer() = 0;
 };
 
 class Frame {
@@ -92,6 +93,7 @@ public:
 
   Frame(temp::Label *name) : name_(name) {}
   std::string GetLabel() { return name_->Name(); }
+  temp::Label *getLabel(){return name_;}
   virtual int getFrameSize() = 0;
   virtual Access *getSLAccess() = 0;
   virtual Access *AllocLocal(bool escape) = 0;
@@ -117,28 +119,29 @@ public:
    */
   virtual void OutputAssem(FILE *out, OutputPhase phase,
                            bool need_ra) const = 0;
-  virtual Frag *getPtrMap(temp::Label *function) = 0;
+  // virtual Frag *getPtrMap(temp::Label *function) = 0;
 };
 
 class PtrMapFrag : public Frag {
 public:
-  temp::Label *function_;
-  temp::Label *label_;
+  // temp::Label *frame_;
+  temp::Label *index_;
   // temp::Label *prev_;
-  int frame_size_;
+  std::string frame_size_;
+  long isMain;
   std::list<long> pointers_;
 
-  PtrMapFrag(temp::Label *function,temp::Label *label)
-      : function_(function), label_(label) {}
+  PtrMapFrag(temp::Label *label)
+      :index_(label) {}
 
   void OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const override;
-  Frag *getPtrMap(temp::Label *function) override{
-    if(function_== function){
-      return this;
-    }else{
-      return nullptr;
-    }
-  }
+  // Frag *getPtrMap(temp::Label *function) override{
+  //   if(frame_== function){
+  //     return this;
+  //   }else{
+  //     return nullptr;
+  //   }
+  // }
 };
 
 class StringFrag : public Frag {
@@ -150,7 +153,7 @@ public:
       : label_(label), str_(std::move(str)) {}
 
   void OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const override;
-  Frag *getPtrMap(temp::Label *function) override{ return nullptr;}
+  // Frag *getPtrMap(temp::Label *function) override{ return nullptr;}
 };
 
 class ProcFrag : public Frag {
@@ -161,7 +164,7 @@ public:
   ProcFrag(tree::Stm *body, Frame *frame) : body_(body), frame_(frame) {}
 
   void OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const override;
-  Frag *getPtrMap(temp::Label *function) override{ return nullptr;}
+  // Frag *getPtrMap(temp::Label *function) override{ return nullptr;}
 };
 
 class Frags {
@@ -169,15 +172,15 @@ public:
   Frags() = default;
   void PushBack(Frag *frag) { frags_.emplace_back(frag); }
   const std::list<Frag *> &GetList() { return frags_; }
-  Frag *getPtrMap(temp::Label *function){
-    for(Frag *f : frags_){
-      Frag *temp = f->getPtrMap(function);
-      if(temp!=nullptr){
-        return temp;
-      }
-    }
-    return nullptr;
-  }
+  // Frag *getPtrMap(temp::Label *function){
+  //   for(Frag *f : frags_){
+  //     Frag *temp = f->getPtrMap(function);
+  //     if(temp!=nullptr){
+  //       return temp;
+  //     }
+  //   }
+  //   return nullptr;
+  // }
 
 private:
   std::list<Frag *> frags_;

@@ -535,11 +535,10 @@ void RegAllocator::RewriteProgram(live::INodeListPtr spilledList) {
       if ((*instr)->Def()->Contain(node->NodeInfo())) {
         if (!create) {
           newTemp = temp::TempFactory::NewTemp();
-          frame::Access *acc = frame_->AllocLocal(true);
-          offset = acc->getOffset();
+          offset = frame_->ExpandFrame(1);
           // for GC: if a pilled temp is a pointer, the access in frame should be set as a pointer
           if(node->NodeInfo()->isPointer()){
-            acc->setPointer();
+            newTemp->setPointer();
           }
           create = true;
           fprintf(file, "replace %d with %d, offset: %d\n",
@@ -559,11 +558,10 @@ void RegAllocator::RewriteProgram(live::INodeListPtr spilledList) {
       if ((*instr)->Use()->Contain(node->NodeInfo())) {
         if (!create) {
           newTemp = temp::TempFactory::NewTemp();
-          frame::Access *acc = frame_->AllocLocal(true);
-          offset = acc->getOffset();
+          offset = frame_->ExpandFrame(1);
           // for GC: if a pilled temp is a pointer, the access in frame should be set as a pointer
           if(node->NodeInfo()->isPointer()){
-            acc->setPointer();
+            newTemp->setPointer();
           }
           create = true;
           fprintf(file, "replace %d with %d, offset: %d\n",

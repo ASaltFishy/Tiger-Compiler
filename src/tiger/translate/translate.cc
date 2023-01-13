@@ -323,18 +323,6 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     retExp = new tree::CallExp(name, argList);
   }
 
-  // for GC: add pointer map
-  temp::Label *retLabel = temp::LabelFactory::NewLabel();
-  retExp = new tree::EseqExp(new tree::LabelStm(retLabel), retExp);
-  // add pointers in frame to frag now, pointer in reg need to be considered in
-  // reg alloc
-  temp::Label *ptrmapLabel =
-      temp::LabelFactory::NamedLabel(retLabel->Name() + "_ptrmap");
-  frame::PtrMapFrag *ptrmap = new frame::PtrMapFrag(funcLabel, ptrmapLabel);
-  std::list<long> temp = level->frame_->getPointerList();
-  ptrmap->pointers_.assign(temp.begin(), temp.end());
-  frags->PushBack(ptrmap);
-
   type::Ty *retType = entry->result_;
   return new tr::ExpAndTy(new tr::ExExp(retExp), retType);
 }

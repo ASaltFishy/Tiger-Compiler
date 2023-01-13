@@ -27,6 +27,33 @@ void AssemInstr::Print(FILE *out, temp::Map *map) const {
     instr->Print(out, map);
   fprintf(out, "\n");
 }
+
+/* pointer的传递规则：
+ * 1. move指令的 dst与src为同一类型
+ * 2. addq/subq若src中的一个为pointer则dst为pointer
+ */
+void pointerAnalyse(assem::Instr *instr) {
+  // move
+  if (typeid(*instr) == typeid(assem::MoveInstr)) {
+    assem::MoveInstr *move = (assem::MoveInstr *)instr;
+    if (move->dst_ && move->src_ &&
+        move->src_->GetList().front()->isPointer()) {
+      move->dst_->GetList().front()->setPointer();
+    }
+    // add or sub
+    if (typeid(*instr) == typeid(assem::OperInstr)) {
+      assem::OperInstr *op = (assem::OperInstr *)instr;
+      if (op->assem_.find("add") != std::string::npos ||
+          op->assem_.find("sub") != std::string::npos) {
+        if (op->dst_ && op->src_) {
+          auto SrcListHead = op->src_->GetList().begin();
+          if((*SrcListHead)->isPointer() || (*SrcListHead++)->isPointer())
+          op->dst_->GetList().front()->setPointer();
+        }
+      }
+    }
+  }
+}
 } // namespace cg
 
 namespace tree {
@@ -123,7 +150,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
                                            new temp::TempList(left_reg)));
     instr_list.Append(
         new assem::OperInstr("addq `s0, `d0", new temp::TempList(newReg),
-                             new temp::TempList({right_reg,newReg}), nullptr));
+                             new temp::TempList({right_reg, newReg}), nullptr));
     break;
   case MINUS_OP:
     instr_list.Append(new assem::MoveInstr("movq `s0, `d0",
@@ -131,18 +158,18 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
                                            new temp::TempList(left_reg)));
     instr_list.Append(
         new assem::OperInstr("subq `s0, `d0", new temp::TempList(newReg),
-                             new temp::TempList({right_reg,newReg}), nullptr));
+                             new temp::TempList({right_reg, newReg}), nullptr));
     break;
   case MUL_OP:
     instr_list.Append(new assem::MoveInstr("movq `s0, `d0",
                                            new temp::TempList(x64RM->rax),
                                            new temp::TempList(left_reg)));
-    instr_list.Append(new assem::MoveInstr(
-        "cqto", new temp::TempList({x64RM->rdx}),
-        new temp::TempList(x64RM->rax)));
-    instr_list.Append(
-        new assem::OperInstr("imulq `s0", new temp::TempList({x64RM->rax,x64RM->rdx}),
-                             new temp::TempList({right_reg,x64RM->rax}), nullptr));
+    instr_list.Append(new assem::MoveInstr("cqto",
+                                           new temp::TempList({x64RM->rdx}),
+                                           new temp::TempList(x64RM->rax)));
+    instr_list.Append(new assem::OperInstr(
+        "imulq `s0", new temp::TempList({x64RM->rax, x64RM->rdx}),
+        new temp::TempList({right_reg, x64RM->rax}), nullptr));
     instr_list.Append(
         new assem::OperInstr("movq `s0, `d0", new temp::TempList(newReg),
                              new temp::TempList(x64RM->rax), nullptr));
@@ -151,12 +178,12 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     instr_list.Append(new assem::MoveInstr("movq `s0, `d0",
                                            new temp::TempList(x64RM->rax),
                                            new temp::TempList(left_reg)));
-    instr_list.Append(new assem::MoveInstr(
-        "cqto", new temp::TempList({x64RM->rdx}),
-        new temp::TempList(x64RM->rax)));
+    instr_list.Append(new assem::MoveInstr("cqto",
+                                           new temp::TempList({x64RM->rdx}),
+                                           new temp::TempList(x64RM->rax)));
     instr_list.Append(new assem::OperInstr(
         "idivq `s0", new temp::TempList({x64RM->rax, x64RM->rdx}),
-        new temp::TempList({right_reg,x64RM->rax}), nullptr));
+        new temp::TempList({right_reg, x64RM->rax}), nullptr));
     instr_list.Append(
         new assem::OperInstr("movq `s0, `d0", new temp::TempList(newReg),
                              new temp::TempList(x64RM->rax), nullptr));
@@ -277,7 +304,6 @@ temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list,
     res->Append(arg->Munch(instr_list, fs));
   }
   return res;
-
 }
 
 } // namespace tree

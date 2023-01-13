@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 // Note: change to header file of your implemnted heap!
-#include "../runtime/gc/heap/heap.h"
+#include "../runtime/gc/heap/derived_heap.h"
 
 #ifndef EXTERNC
 #define EXTERNC extern "C"
@@ -43,16 +43,20 @@ EXTERNC uint64_t MaxFree() {
 
 EXTERNC long *init_array(int size, long init) {
   int i;
-  // TODO: 如何在heap中记录array的长度————似乎可以用个数组专门记录元数据
-  uint64_t allocate_size = size * sizeof(long);
-  long *a = (long *)tiger_heap->Allocate(allocate_size);
+
+  uint64_t allocate_size = (size + 2) * sizeof(long);
+  long *a, *p;
+  p = a = (long *)tiger_heap->Allocate(allocate_size);
   if (!a) {
     tiger_heap->GC();
-    a = (long *)tiger_heap->Allocate(allocate_size);
+    p = a = (long *)tiger_heap->Allocate(allocate_size);
   }
+  p++;
+  *p++ = size;
+  a = p;
   for (i = 0; i < size; i++)
     a[i] = init;
-  return ++a;
+  return p;
 }
 
 struct string {
@@ -60,19 +64,25 @@ struct string {
   unsigned char chars[1];
 };
 
-EXTERNC int *alloc_record(std::string *str) {
-  long size = str->size();
+EXTERNC int *alloc_record(struct string *str) {
+  long size = str->length;
+  std::string *descriptor = new std::string();
+  for(int i=0;i<size;i++){
+    descriptor->push_back(str->chars[i]);
+  }
+  long allocSize = (size+2)*sizeof(long);
   int i;
-  long *p, *a;
-  p = a = (long *)tiger_heap->Allocate(size);
+  uint64_t *p, *a;
+  p = a = (uint64_t *)tiger_heap->Allocate(allocSize);
   if (!p) {
     tiger_heap->GC();
-    p = a = (long *)tiger_heap->Allocate(size);
+    p = a = (uint64_t *)tiger_heap->Allocate(allocSize);
   }
-  *p++ = (long)str;
-  for (i = 1; i < size; i += sizeof(int))
+  *p = (uint64_t)descriptor;
+  a = p += 2;
+  for (i = 0; i < size; i ++)
     *p++ = 0;
-  return (int *)(++a);
+  return (int *)a;
 }
 
 EXTERNC int string_equal(struct string *s, struct string *t) {
@@ -108,7 +118,8 @@ int main() {
     consts[i].chars[0] = i;
   }
   // Change it to your own implementation after implement heap and delete the
-  // comment! tiger_heap = new gc::TigerHeap();
+  // comment!
+  tiger_heap = new gc::DerivedHeap();
   tiger_heap->Initialize(TIGER_HEAP_SIZE);
   return tigermain(0 /* static link */);
 }

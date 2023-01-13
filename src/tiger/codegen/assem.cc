@@ -97,4 +97,26 @@ void InstrList::Print(FILE *out, temp::Map *m) const {
   fprintf(out, "\n");
 }
 
+void InstrList::pointerAnalyse(Instr *instr) {
+  // pointer analysis and transformation
+  // move
+  if (typeid(*instr) == typeid(assem::MoveInstr)) {
+    assem::MoveInstr *move = (assem::MoveInstr *)instr;
+    if (move->dst_ && move->src_)
+      move->src_->GetList().front()->pointer =
+          move->dst_->GetList().front()->pointer;
+  }
+  // add or sub
+  if (typeid(*instr) == typeid(assem::OperInstr)) {
+    assem::OperInstr *op = (assem::OperInstr *)instr;
+    if (op->assem_.find("add") != std::string::npos ||
+        op->assem_.find("sub") != std::string::npos) {
+      if (op->dst_ && op->src_) {
+        auto SrcListHead = op->src_->GetList().begin();
+        if ((*SrcListHead)->isPointer() || (*SrcListHead++)->isPointer())
+          op->dst_->GetList().front()->setPointer();
+      }
+    }
+  }
+}
 } // namespace assem

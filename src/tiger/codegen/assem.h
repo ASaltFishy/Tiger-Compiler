@@ -71,7 +71,10 @@ public:
   InstrList() = default;
 
   void Print(FILE *out, temp::Map *m) const;
-  void Append(assem::Instr *instr) { instr_list_.push_back(instr); }
+  void Append(assem::Instr *instr) {
+    pointerAnalyse(instr);
+    instr_list_.push_back(instr);
+  }
   void Remove(assem::Instr *instr) { instr_list_.remove(instr); }
   void Insert(std::list<Instr *>::const_iterator pos, assem::Instr *instr) {
     instr_list_.insert(pos, instr);
@@ -79,12 +82,18 @@ public:
   [[nodiscard]] const std::list<Instr *> &GetList() const {
     return instr_list_;
   }
-  [[nodiscard]]std::list<Instr *> *GetListPtr(){
-    return &instr_list_;
+  [[nodiscard]] std::list<Instr *> *GetListPtr() { return &instr_list_; }
+  std::list<Instr *>::const_iterator Find(assem::Instr *instr) {
+    for (auto item = instr_list_.begin(); item != instr_list_.end(); item++) {
+      if ((*item) == instr)
+        return item;
+    }
+    return instr_list_.end();
   }
 
 private:
   std::list<Instr *> instr_list_;
+  void pointerAnalyse(Instr *instr);
 };
 
 class Proc {
