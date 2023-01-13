@@ -114,9 +114,12 @@ bool DerivedHeap::point2Heap(uint64_t p) {
 
 void DerivedHeap::getRoots(uint64_t *sp) {
   roots.clear();
-  uint64_t returnAddress = *sp;
+  // for(int i=0;i<7;i++){
+  //   printf("%ld\n",*(sp+i));
+  // }
   bool terminate = false;
   while (!terminate) {
+    uint64_t returnAddress = *sp;
     for (pointerMap map : maps) {
       if (returnAddress == map.index) {
         if (map.isMain == 1) {
