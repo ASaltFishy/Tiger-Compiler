@@ -112,7 +112,7 @@ void LiveGraphFactory::InterfGraph() {
       all_reg.insert(it);
     }
   }
-  // 剔除precolored
+  // erase precolored
   for (temp::Temp *reg : reg_manager->intialInterfere()->GetList()){
     all_reg.erase(reg);
   }

@@ -124,7 +124,6 @@ tree::Stm *ProcEntryExit1(frame::Frame *frame, tree::Stm *body) {
       reg++;
     }
   }
-  // what happend to this iterator in reverse?????
   frame->formals_.reverse();
   for (frame::Access *it : frame->formals_) {
     if (argNum <= 6) {

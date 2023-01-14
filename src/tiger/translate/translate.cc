@@ -171,10 +171,10 @@ bool IsPointer(type::Ty *ty_) {
 }
 
 /* for GC: create record discription
- * format: |1|01000111...|
+ * format: |01000111...|
  * LableName: "$typeName$_DESCRIPTOR"
  */
-void emitRecordRecordTypeDescriptor(type::RecordTy *recordTy,
+void generateRecordTypeDescriptor(type::RecordTy *recordTy,
                                     sym::Symbol *name) {
   std::string pointMAP, recordNAME;
   recordNAME = name->Name() + "_descriptor";
@@ -804,7 +804,7 @@ tr::Exp *TypeDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     tenv->Set(item->name_, type);
     // for GC：add record descriptor into stringFrag
     if (typeid(*(type->ActualTy())) == typeid(type::RecordTy)) {
-      emitRecordRecordTypeDescriptor((type::RecordTy *)type, item->name_);
+      generateRecordTypeDescriptor((type::RecordTy *)type, item->name_);
     }
   }
   return new tr::ExExp(new tree::ConstExp(0));

@@ -49,3 +49,39 @@ private:
 };
 
 } // namespace gc
+
+
+/* 
+ * pointerMap for record:
+ * index(return address)
+ * frame size
+ * isMain
+ * register pointer bitmap
+ * in frame pointer's offset
+ * -1 (end label of a pointer map)
+
+ * 
+ * array at heap
+ * |       0          |
+ * |------------------|
+ * |     array size   |
+ * |------------------|
+ * |     elements     |
+ * |------------------|
+ * |       ...        |
+ * |------------------|
+ * |       ...        |
+ * |------------------|
+ * 
+ * record at heap
+ * | ptr to descriptor|
+ * |------------------|
+ * |        0         |
+ * |------------------|
+ * |      fields      |
+ * |------------------|
+ * |        ...       |
+ * |------------------|
+ * |        ...       |
+ * |------------------|
+ *  */
